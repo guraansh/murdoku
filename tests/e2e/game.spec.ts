@@ -65,6 +65,22 @@ test('room labels stay separated from neighboring rooms and furniture', async ({
   }
 });
 
+test('case 11 gives the travel trunk and suitcase distinct illustrations', async ({ page }) => {
+  const puzzle = CASES[10];
+  const suitcase = puzzle.furniture.find((object) => object.name === 'Suitcase')!;
+  const travelTrunk = puzzle.furniture.find((object) => object.name === 'Travel trunk')!;
+  await page.getByRole('button', { name: 'Back to case files', exact: true }).click();
+  await page.getByTestId('chapter-2').click();
+  await page.getByTestId(`open-case-${puzzle.id}`).click();
+  await expect(page.getByRole('heading', { name: puzzle.title, exact: true })).toBeVisible();
+  const suitcaseArt = page.getByTestId(`cell-${suitcase.cell}`).locator('svg');
+  const trunkArt = page.getByTestId(`cell-${travelTrunk.cell}`).locator('svg');
+  await expect(suitcaseArt).toBeVisible();
+  await expect(trunkArt).toBeVisible();
+  expect(await suitcaseArt.locator('circle').count()).toBeGreaterThanOrEqual(2);
+  expect(await trunkArt.locator('circle').count()).toBe(0);
+});
+
 test('tutorial, placement rules, marks and undo work together', async ({ page }) => {
   await page.getByRole('button', { name: 'How to play', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'A mystery in every square.' })).toBeVisible();

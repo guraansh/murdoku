@@ -112,10 +112,12 @@ export function Portrait({
 
 export function FurnitureArt({
   kind,
+  name,
   color = '#796953',
   size = 38,
 }: {
   kind: FurnitureKind;
+  name?: string;
   color?: string;
   size?: number;
 }) {
@@ -246,13 +248,23 @@ export function FurnitureArt({
       );
       break;
     case 'trunk':
-      drawing = (
-        <>
-          <Rect x="8" y="14" width="40" height="30" rx="4" fill="#BD9A77" />
-          <Path d="M23 14V9H34V14M8 28H48M17 14V44M40 14V44" />
-          <Rect x="25" y="24" width="8" height="9" rx="1" fill="#DFCA91" />
-        </>
-      );
+      drawing =
+        name?.toLowerCase() === 'suitcase' ? (
+          <>
+            <Rect x="14" y="12" width="28" height="34" rx="5" fill="#B7A07D" />
+            <Path d="M23 12V8Q23 5 28 5H28Q33 5 33 8V12" />
+            <Path d="M14 26H42M20 12V46M36 12V46" />
+            <Rect x="25" y="23" width="6" height="8" rx="1" fill="#DFCA91" />
+            <Circle cx="20" cy="49" r="2" fill="#8A745E" stroke="none" />
+            <Circle cx="36" cy="49" r="2" fill="#8A745E" stroke="none" />
+          </>
+        ) : (
+          <>
+            <Rect x="8" y="14" width="40" height="30" rx="4" fill="#BD9A77" />
+            <Path d="M23 14V9H34V14M8 28H48M17 14V44M40 14V44" />
+            <Rect x="25" y="24" width="8" height="9" rx="1" fill="#DFCA91" />
+          </>
+        );
       break;
     case 'lamp':
       drawing = (

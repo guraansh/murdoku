@@ -184,6 +184,7 @@ export function GameBoard({
                           {object && (
                             <FurnitureArt
                               kind={object.kind}
+                              name={object.name}
                               color={room.ink}
                               size={furnitureSize}
                             />
@@ -287,7 +288,12 @@ export function GameBoard({
           {puzzle.furniture.map((object) => (
             <View key={object.id} style={[s.objectKeyItem, !small && s.objectKeyItemWide]}>
               <View style={s.objectIcon}>
-                <FurnitureArt kind={object.kind} color={colors.secondary} size={29} />
+                <FurnitureArt
+                  kind={object.kind}
+                  name={object.name}
+                  color={colors.secondary}
+                  size={29}
+                />
               </View>
               <Type style={s.objectName}>{object.name}</Type>
               <Type style={s.objectCoordinate}>{coordinate(object.cell, puzzle.size)}</Type>

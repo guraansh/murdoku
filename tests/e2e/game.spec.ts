@@ -26,10 +26,43 @@ test('the first scene renders without runtime errors or horizontal clipping', as
   await page.reload();
   await expect(page.getByTestId('cell-35')).toBeVisible();
   await expect(page.getByTestId('placement-count')).toHaveText('0/6 placed');
+  for (const room of CASES[0].rooms)
+    await expect(page.getByTestId(`room-label-${room.id}`)).toHaveText(room.name);
+  await expect(page.getByTestId('room-legend')).toHaveCount(0);
   const board = await page.getByTestId('cell-35').boundingBox();
   expect(board!.x + board!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
   expect(errors).toEqual([]);
   await page.screenshot({ path: `artifacts/${testInfo.project.name}-game.png`, fullPage: true });
+});
+
+test('room labels stay separated from neighboring rooms and furniture', async ({ page }) => {
+  const puzzle = CASES[80];
+  await page.getByRole('button', { name: 'Back to case files', exact: true }).click();
+  await page.getByTestId('chapter-9').click();
+  await page.getByTestId(`open-case-${puzzle.id}`).click();
+  await expect(page.getByRole('heading', { name: puzzle.title, exact: true })).toBeVisible();
+
+  const intersects = (
+    a: { x: number; y: number; width: number; height: number },
+    b: { x: number; y: number; width: number; height: number },
+  ) => a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
+  const labels = await Promise.all(
+    puzzle.rooms.map(
+      async (room) =>
+        [room.id, await page.getByTestId(`room-label-${room.id}`).boundingBox()] as const,
+    ),
+  );
+  for (let index = 0; index < labels.length; index += 1) {
+    expect(labels[index][1]).toBeTruthy();
+    for (let other = index + 1; other < labels.length; other += 1) {
+      expect(intersects(labels[index][1]!, labels[other][1]!)).toBe(false);
+    }
+  }
+  for (const object of puzzle.furniture) {
+    const tile = await page.getByTestId(`cell-${object.cell}`).boundingBox();
+    expect(tile).toBeTruthy();
+    for (const [, label] of labels) expect(intersects(label!, tile!)).toBe(false);
+  }
 });
 
 test('tutorial, placement rules, marks and undo work together', async ({ page }) => {

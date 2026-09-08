@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { ChevronDown, ChevronUp, Compass, Crosshair, X } from 'lucide-react-native';
-import { coordinate, roomAt } from '../game/engine';
+import { coordinate } from '../game/engine';
 import { GameSession, Puzzle } from '../game/types';
 import { FurnitureArt, Portrait } from './Illustrations';
 import { Eyebrow, Type } from './primitives';
@@ -28,6 +28,63 @@ export function GameBoard({
   const boardSize = Math.max(puzzle.size * 44, Math.min(available - 24, 400));
   const tileSize = boardSize / puzzle.size;
   const furnitureSize = Math.min(tileSize * 0.82, tileSize - 4);
+  const blockedCells = new Set([
+    ...puzzle.furniture.map((item) => item.cell),
+    ...Object.values(session.placements),
+  ]);
+  const roomLabels = puzzle.rooms.map((room) => {
+    const cells = puzzle.layout.flatMap((row, r) =>
+      row.flatMap((roomId, c) =>
+        roomId === room.id ? [{ cell: r * puzzle.size + c, row: r, column: c }] : [],
+      ),
+    );
+    const centerRow = cells.reduce((sum, item) => sum + item.row, 0) / cells.length;
+    const centerColumn = cells.reduce((sum, item) => sum + item.column, 0) / cells.length;
+    const runs: Array<{ row: number; startColumn: number; length: number }> = [];
+    for (let row = 0; row < puzzle.size; row += 1) {
+      let startColumn: number | null = null;
+      for (let column = 0; column <= puzzle.size; column += 1) {
+        const cell = row * puzzle.size + column;
+        const open =
+          column < puzzle.size && puzzle.layout[row][column] === room.id && !blockedCells.has(cell);
+        if (open && startColumn === null) startColumn = column;
+        if ((!open || column === puzzle.size) && startColumn !== null) {
+          runs.push({ row, startColumn, length: column - startColumn });
+          startColumn = null;
+        }
+      }
+    }
+    if (!runs.length) {
+      for (let row = 0; row < puzzle.size; row += 1) {
+        let startColumn: number | null = null;
+        for (let column = 0; column <= puzzle.size; column += 1) {
+          const open = column < puzzle.size && puzzle.layout[row][column] === room.id;
+          if (open && startColumn === null) startColumn = column;
+          if ((!open || column === puzzle.size) && startColumn !== null) {
+            runs.push({ row, startColumn, length: column - startColumn });
+            startColumn = null;
+          }
+        }
+      }
+    }
+    const labelRun = runs.reduce((best, run) => {
+      const score =
+        run.length * 100 -
+        Math.abs(run.row - centerRow) * 2 -
+        Math.abs(run.startColumn + (run.length - 1) / 2 - centerColumn);
+      const bestScore =
+        best.length * 100 -
+        Math.abs(best.row - centerRow) * 2 -
+        Math.abs(best.startColumn + (best.length - 1) / 2 - centerColumn);
+      return score > bestScore ? run : best;
+    });
+    return {
+      ...room,
+      left: labelRun.startColumn * tileSize + 4,
+      top: labelRun.row * tileSize + 4,
+      width: labelRun.length * tileSize - 8,
+    };
+  });
   const placedByCell = Object.fromEntries(
     Object.entries(session.placements).map(([person, cell]) => [cell, person]),
   );
@@ -167,6 +224,32 @@ export function GameBoard({
                     })}
                   </View>
                 ))}
+                <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+                  {roomLabels.map((label) => (
+                    <View
+                      key={label.id}
+                      testID={`room-label-${label.id}`}
+                      style={[
+                        s.roomLabel,
+                        {
+                          left: label.left,
+                          top: label.top,
+                          width: label.width,
+                          borderColor: `${label.ink}55`,
+                        },
+                      ]}
+                    >
+                      <Type
+                        numberOfLines={2}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.65}
+                        style={[s.roomLabelText, { color: label.ink }]}
+                      >
+                        {label.name}
+                      </Type>
+                    </View>
+                  ))}
+                </View>
               </View>
             </View>
           </View>
@@ -177,14 +260,6 @@ export function GameBoard({
           Slide the floor plan to see every column.
         </Type>
       )}
-      <View style={s.legend}>
-        {puzzle.rooms.map((room) => (
-          <View key={room.id} style={s.legendItem}>
-            <View style={[s.swatch, { backgroundColor: room.color }]} />
-            <Type style={s.legendText}>{room.name}</Type>
-          </View>
-        ))}
-      </View>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Furniture key"
@@ -253,22 +328,35 @@ const s = StyleSheet.create({
     color: colors.muted,
     lineHeight: 15,
   },
-  board: { borderWidth: 1.5, borderColor: '#59634F', borderRadius: 5, overflow: 'hidden' },
+  board: {
+    position: 'relative',
+    borderWidth: 1.5,
+    borderColor: '#59634F',
+    borderRadius: 5,
+    overflow: 'hidden',
+  },
   tile: { alignItems: 'center', justifyContent: 'center', position: 'relative' },
   conflict: {
     alignItems: 'center',
     justifyContent: 'center',
   },
-  legend: {
-    flexDirection: 'row',
+  roomLabel: {
+    position: 'absolute',
+    minHeight: 18,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 5,
+    borderWidth: 1,
+    backgroundColor: '#FFFEF9CC',
+    alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
-    flexWrap: 'wrap',
-    marginTop: 18,
   },
-  legendItem: { flexDirection: 'row', gap: 5, alignItems: 'center' },
-  swatch: { height: 9, width: 9, borderRadius: 2, borderWidth: 0.5, borderColor: '#77777733' },
-  legendText: { fontSize: 10, lineHeight: 15, color: colors.secondary },
+  roomLabelText: {
+    fontFamily: fonts.bold,
+    fontSize: 9,
+    lineHeight: 11,
+    textAlign: 'center',
+  },
   keyToggle: {
     alignSelf: 'stretch',
     flexDirection: 'row',

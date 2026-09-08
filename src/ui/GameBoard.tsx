@@ -100,21 +100,28 @@ export function GameBoard({
                               width: tileSize,
                               height: tileSize,
                               backgroundColor: room.color,
-                              borderRightWidth: rightWall ? 2.5 : c === puzzle.size - 1 ? 0 : 0.6,
-                              borderBottomWidth: bottomWall ? 2.5 : r === puzzle.size - 1 ? 0 : 0.6,
-                              borderRightColor: rightWall ? '#757A64' : '#7E79602B',
-                              borderBottomColor: bottomWall ? '#757A64' : '#7E79602B',
+                              borderRightWidth: rightWall ? 3 : c === puzzle.size - 1 ? 0 : 1.25,
+                              borderBottomWidth: bottomWall ? 3 : r === puzzle.size - 1 ? 0 : 1.25,
+                              borderRightColor: rightWall ? '#59634F' : '#A49D7E',
+                              borderBottomColor: bottomWall ? '#59634F' : '#A49D7E',
                               opacity: pressed ? 0.65 : 1,
                             },
                           ]}
                         >
-                          {!occupant && rowTaken && mode === 'place' && (
+                          {!occupant && !object && rowTaken && mode === 'place' && (
                             <View
                               style={[
                                 StyleSheet.absoluteFill,
-                                { backgroundColor: '#FFFFFF38', pointerEvents: 'none' },
+                                s.conflict,
+                                { pointerEvents: 'none' },
                               ]}
-                            />
+                            >
+                              <X
+                                size={Math.max(18, tileSize * 0.38)}
+                                color="#B83F35"
+                                strokeWidth={2.3}
+                              />
+                            </View>
                           )}
                           {object && (
                             <FurnitureArt
@@ -238,8 +245,12 @@ const s = StyleSheet.create({
     color: colors.muted,
     lineHeight: 15,
   },
-  board: { borderWidth: 1, borderColor: '#757A64', borderRadius: 5, overflow: 'hidden' },
+  board: { borderWidth: 1.5, borderColor: '#59634F', borderRadius: 5, overflow: 'hidden' },
   tile: { alignItems: 'center', justifyContent: 'center', position: 'relative' },
+  conflict: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   legend: {
     flexDirection: 'row',
     justifyContent: 'center',

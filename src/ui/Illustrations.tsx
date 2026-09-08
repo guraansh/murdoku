@@ -122,58 +122,151 @@ export function FurnitureArt({
   size?: number;
 }) {
   let drawing;
+  const objectName = name?.toLowerCase() ?? '';
   switch (kind) {
     case 'desk':
-      drawing = (
-        <>
-          <Rect x="8" y="13" width="40" height="27" rx="3" fill="#C6A987" />
-          <Path d="M9 22H47M15 40V46M42 40V46M32 23V38" />
-          <Rect x="14" y="16" width="13" height="14" rx="1" fill="#F7EDD6" />
-          <Path d="M35 17L42 12M36 29H42M36 34H42" />
-        </>
-      );
+      drawing =
+        objectName === 'oak desk' ? (
+          <>
+            <Rect x="7" y="17" width="42" height="22" rx="2" fill="#B48A65" />
+            <Path d="M8 22H48M13 39V48M43 39V48M28 23V38" />
+            <Rect x="12" y="25" width="11" height="10" rx="1" fill="#D5B98A" />
+            <Rect x="33" y="25" width="11" height="10" rx="1" fill="#D5B98A" />
+          </>
+        ) : (
+          <>
+            <Rect x="8" y="13" width="40" height="27" rx="3" fill="#C6A987" />
+            <Path d="M9 22H47M15 40V46M42 40V46M32 23V38" />
+            <Rect x="14" y="16" width="13" height="14" rx="1" fill="#F7EDD6" />
+            <Path d="M35 17L42 12M36 29H42M36 34H42" />
+          </>
+        );
       break;
     case 'books':
-      drawing = (
-        <>
-          <Rect x="11" y="7" width="34" height="42" rx="2" fill="#CEB398" />
-          <Path d="M11 27H45M11 44H45" />
-          <Path
-            d="M16 11V24M22 11V24M27 13L31 24M36 11V24M16 31V41M23 31V41M29 30V41M34 31L38 41"
-            strokeWidth="3.5"
-          />
-        </>
-      );
+      drawing =
+        objectName === 'low bookshelf' ? (
+          <>
+            <Rect x="7" y="26" width="42" height="19" rx="2" fill="#B99B7F" />
+            <Path d="M7 35H49M13 28V34M19 28V34M25 28V34M32 28V34M39 28V34M13 45V49M43 45V49" />
+            <Path d="M12 38V43M18 37V43M25 38V43M32 37V43M39 38V43" strokeWidth="2.5" />
+          </>
+        ) : objectName === 'bookshelf' ? (
+          <>
+            <Rect x="12" y="10" width="32" height="39" rx="2" fill="#C4A687" />
+            <Path d="M12 28H44M12 44H44M18 14V25M25 13V25M32 15V25M38 12V25M18 31V41M27 30V41M36 31V41" />
+          </>
+        ) : (
+          <>
+            <Rect x="11" y="7" width="34" height="42" rx="2" fill="#CEB398" />
+            <Path d="M11 27H45M11 44H45" />
+            <Path
+              d="M16 11V24M22 11V24M27 13L31 24M36 11V24M16 31V41M23 31V41M29 30V41M34 31L38 41"
+              strokeWidth="3.5"
+            />
+          </>
+        );
       break;
     case 'plant':
-      drawing = (
-        <>
-          <Path d="M20 38H36L33 49H23Z" fill="#CBA184" />
-          <Path d="M28 38V15" />
-          <Path
-            d="M28 27C9 28 11 12 13 11C27 10 31 22 28 27ZM29 20C25 9 37 4 42 8C44 17 37 22 29 20ZM28 36C27 23 42 23 44 26C43 35 37 39 28 36Z"
-            fill="#8DAB77"
-          />
-        </>
-      );
+      drawing =
+        objectName === 'fern' ? (
+          <>
+            <Path d="M20 38H36L33 49H23Z" fill="#CBA184" />
+            <Path d="M28 40C28 30 25 22 20 14M28 38C30 29 35 22 41 16" />
+            <Path d="M25 31L15 25M26 27L17 18M29 33L40 27M31 28L43 20M24 23L13 18" fill="none" />
+            <Path d="M15 25L11 24M17 18L14 14M40 27L44 27M43 20L47 17M13 18L10 15" />
+          </>
+        ) : objectName === 'potted palm' ? (
+          <>
+            <Path d="M20 38H36L33 49H23Z" fill="#CBA184" />
+            <Path d="M28 38C28 29 29 21 32 14" />
+            <Path
+              d="M31 16C19 17 12 12 11 7C21 7 28 10 31 16ZM32 16C31 7 37 3 43 4C44 11 40 15 32 16ZM32 18C41 13 48 17 49 23C41 24 35 22 32 18Z"
+              fill="#8DAB77"
+            />
+          </>
+        ) : objectName === 'palm' ? (
+          <>
+            <Path d="M19 38H37L34 49H22Z" fill="#CBA184" />
+            <Path d="M28 38V18" />
+            <Path
+              d="M28 19C16 22 10 18 9 12C18 11 25 13 28 19ZM29 19C23 9 27 4 33 2C38 9 35 15 29 19ZM30 20C39 13 46 16 49 21C42 25 35 24 30 20Z"
+              fill="#8DAB77"
+            />
+          </>
+        ) : (
+          <>
+            <Path d="M20 38H36L33 49H23Z" fill="#CBA184" />
+            <Path d="M28 38V15" />
+            <Path
+              d="M28 27C9 28 11 12 13 11C27 10 31 22 28 27ZM29 20C25 9 37 4 42 8C44 17 37 22 29 20ZM28 36C27 23 42 23 44 26C43 35 37 39 28 36Z"
+              fill="#8DAB77"
+            />
+          </>
+        );
       break;
     case 'flowers':
-      drawing = (
-        <>
-          <Path d="M19 37H38L34 49H23Z" fill="#B9967B" />
-          <Path d="M28 40V17M28 33L17 22M28 29L40 20" />
-          <G fill="#C59187">
-            <Circle cx="17" cy="19" r="7" />
-            <Circle cx="30" cy="14" r="7" />
-            <Circle cx="42" cy="20" r="6" />
-          </G>
-          <G fill="#E1C27D" stroke="none">
-            <Circle cx="17" cy="19" r="2" />
-            <Circle cx="30" cy="14" r="2" />
-            <Circle cx="42" cy="20" r="2" />
-          </G>
-        </>
-      );
+      drawing =
+        objectName === 'orchids' ? (
+          <>
+            <Path d="M19 38H38L34 49H23Z" fill="#B9967B" />
+            <Path d="M28 40V16M28 28C22 23 17 20 13 19M28 33C34 27 39 24 44 23" />
+            <G fill="#D2A5B5">
+              <Circle cx="13" cy="18" r="5" />
+              <Circle cx="28" cy="14" r="5" />
+              <Circle cx="44" cy="22" r="5" />
+            </G>
+            <G fill="#E7C878" stroke="none">
+              <Circle cx="13" cy="18" r="1.5" />
+              <Circle cx="28" cy="14" r="1.5" />
+              <Circle cx="44" cy="22" r="1.5" />
+            </G>
+          </>
+        ) : objectName === 'rose vase' ? (
+          <>
+            <Path d="M20 37H36L34 49H22Z" fill="#B9967B" />
+            <Path d="M28 38V18M28 31L18 22M28 28L39 19" />
+            <G fill="#C88782">
+              <Circle cx="18" cy="20" r="6" />
+              <Circle cx="29" cy="15" r="6" />
+              <Circle cx="40" cy="19" r="6" />
+            </G>
+            <G fill="#E1C27D" stroke="none">
+              <Circle cx="18" cy="20" r="1.6" />
+              <Circle cx="29" cy="15" r="1.6" />
+              <Circle cx="40" cy="19" r="1.6" />
+            </G>
+          </>
+        ) : objectName === 'rose bush' ? (
+          <>
+            <Path d="M28 46V28M28 37L18 29M28 34L39 25M28 41L39 38" />
+            <G fill="#91A77A" stroke="none">
+              <Circle cx="17" cy="31" r="7" />
+              <Circle cx="39" cy="27" r="8" />
+              <Circle cx="39" cy="39" r="7" />
+              <Circle cx="22" cy="42" r="7" />
+            </G>
+            <G fill="#C88782" stroke={color}>
+              <Circle cx="21" cy="24" r="5" />
+              <Circle cx="36" cy="19" r="5" />
+            </G>
+            <Path d="M16 49H40" strokeWidth="2" />
+          </>
+        ) : (
+          <>
+            <Path d="M19 37H38L34 49H23Z" fill="#B9967B" />
+            <Path d="M28 40V17M28 33L17 22M28 29L40 20" />
+            <G fill="#C59187">
+              <Circle cx="17" cy="19" r="7" />
+              <Circle cx="30" cy="14" r="7" />
+              <Circle cx="42" cy="20" r="6" />
+            </G>
+            <G fill="#E1C27D" stroke="none">
+              <Circle cx="17" cy="19" r="2" />
+              <Circle cx="30" cy="14" r="2" />
+              <Circle cx="42" cy="20" r="2" />
+            </G>
+          </>
+        );
       break;
     case 'globe':
       drawing = (
@@ -196,26 +289,66 @@ export function FurnitureArt({
       );
       break;
     case 'sofa':
-      drawing = (
-        <>
-          <Rect x="11" y="13" width="34" height="23" rx="7" fill="#BEABC4" />
-          <Rect x="10" y="28" width="36" height="14" rx="4" fill="#CABCD0" />
-          <Rect x="6" y="23" width="8" height="18" rx="3" fill="#BEABC4" />
-          <Rect x="42" y="23" width="8" height="18" rx="3" fill="#BEABC4" />
-          <Path d="M28 18V35M12 42V47M44 42V47" />
-        </>
-      );
+      drawing =
+        objectName === 'armchair' ? (
+          <>
+            <Rect x="16" y="13" width="24" height="25" rx="8" fill="#BEABC4" />
+            <Rect x="13" y="29" width="30" height="13" rx="4" fill="#CABCD0" />
+            <Rect x="10" y="23" width="8" height="18" rx="3" fill="#BEABC4" />
+            <Rect x="38" y="23" width="8" height="18" rx="3" fill="#BEABC4" />
+            <Path d="M28 17V35M15 42V47M41 42V47" />
+          </>
+        ) : objectName === 'bench' ? (
+          <>
+            <Rect x="8" y="20" width="40" height="13" rx="3" fill="#BEABC4" />
+            <Rect x="10" y="14" width="36" height="10" rx="3" fill="#CABCD0" />
+            <Path d="M12 33V48M44 33V48M8 34H48" />
+          </>
+        ) : (
+          <>
+            <Rect x="11" y="13" width="34" height="23" rx="7" fill="#BEABC4" />
+            <Rect x="10" y="28" width="36" height="14" rx="4" fill="#CABCD0" />
+            <Rect x="6" y="23" width="8" height="18" rx="3" fill="#BEABC4" />
+            <Rect x="42" y="23" width="8" height="18" rx="3" fill="#BEABC4" />
+            <Path d="M28 18V35M12 42V47M44 42V47" />
+          </>
+        );
       break;
     case 'table':
-      drawing = (
-        <>
-          <Ellipse cx="28" cy="25" rx="21" ry="14" fill="#D2B697" />
-          <Path d="M12 34V46M44 34V46M28 39V49" />
-          <Ellipse cx="26" cy="24" rx="7" ry="5" fill="#F2E9D4" />
-          <Path d="M31 21Q39 21 35 26" />
-          <Path d="M25 16Q22 12 26 9" strokeWidth="1" />
-        </>
-      );
+      drawing =
+        objectName === 'round table' ? (
+          <>
+            <Circle cx="28" cy="24" r="16" fill="#D2B697" />
+            <Path d="M28 40V49M20 49H36" />
+            <Circle cx="28" cy="24" r="3" fill="#F2E9D4" />
+          </>
+        ) : objectName === 'coffee table' ? (
+          <>
+            <Rect x="7" y="20" width="42" height="13" rx="3" fill="#D2B697" />
+            <Path d="M12 33V47M44 33V47M12 38H44" />
+            <Path d="M18 20V16M38 20V16" />
+          </>
+        ) : objectName === 'side table' ? (
+          <>
+            <Ellipse cx="28" cy="19" rx="12" ry="8" fill="#D2B697" />
+            <Path d="M28 27V48M20 49H36" />
+            <Circle cx="28" cy="18" r="3" fill="#F2E9D4" />
+          </>
+        ) : objectName === 'dining table' ? (
+          <>
+            <Rect x="5" y="18" width="46" height="14" rx="3" fill="#C5A27F" />
+            <Path d="M10 32V49M46 32V49M18 32V45M38 32V45M5 26H51" />
+            <Ellipse cx="28" cy="25" rx="5" ry="3" fill="#F2E9D4" />
+          </>
+        ) : (
+          <>
+            <Ellipse cx="28" cy="25" rx="21" ry="14" fill="#D2B697" />
+            <Path d="M12 34V46M44 34V46M28 39V49" />
+            <Ellipse cx="26" cy="24" rx="7" ry="5" fill="#F2E9D4" />
+            <Path d="M31 21Q39 21 35 26" />
+            <Path d="M25 16Q22 12 26 9" strokeWidth="1" />
+          </>
+        );
       break;
     case 'piano':
       drawing = (
@@ -249,7 +382,7 @@ export function FurnitureArt({
       break;
     case 'trunk':
       drawing =
-        name?.toLowerCase() === 'suitcase' ? (
+        objectName === 'suitcase' ? (
           <>
             <Rect x="14" y="12" width="28" height="34" rx="5" fill="#B7A07D" />
             <Path d="M23 12V8Q23 5 28 5H28Q33 5 33 8V12" />
@@ -257,6 +390,13 @@ export function FurnitureArt({
             <Rect x="25" y="23" width="6" height="8" rx="1" fill="#DFCA91" />
             <Circle cx="20" cy="49" r="2" fill="#8A745E" stroke="none" />
             <Circle cx="36" cy="49" r="2" fill="#8A745E" stroke="none" />
+          </>
+        ) : objectName === 'trunk' ? (
+          <>
+            <Path d="M9 21Q28 8 47 21V44H9Z" fill="#AD896A" />
+            <Path d="M9 28H47M17 19V44M39 19V44" />
+            <Rect x="25" y="27" width="7" height="8" rx="1" fill="#DFCA91" />
+            <Path d="M22 17V12H34V17" />
           </>
         ) : (
           <>
@@ -267,13 +407,27 @@ export function FurnitureArt({
         );
       break;
     case 'lamp':
-      drawing = (
-        <>
-          <Path d="M19 9H37L46 29H10Z" fill="#E2C58D" />
-          <Path d="M28 30V46M18 48H38M40 30V37" />
-          <Ellipse cx="28" cy="48" rx="11" ry="3" fill="#B0986D" />
-        </>
-      );
+      drawing =
+        objectName === 'reading lamp' ? (
+          <>
+            <Path d="M29 45V27L39 19M29 27L21 21" />
+            <Path d="M13 20H29L25 30H9Z" fill="#E2C58D" />
+            <Path d="M20 46H38" />
+            <Ellipse cx="29" cy="47" rx="11" ry="3" fill="#B0986D" />
+          </>
+        ) : objectName === 'lamp' ? (
+          <>
+            <Path d="M18 19Q28 10 38 19L35 29H21Z" fill="#E2C58D" />
+            <Path d="M28 29V46M18 48H38" />
+            <Circle cx="28" cy="13" r="3" fill="#D0AE75" />
+          </>
+        ) : (
+          <>
+            <Path d="M19 9H37L46 29H10Z" fill="#E2C58D" />
+            <Path d="M28 30V46M18 48H38M40 30V37" />
+            <Ellipse cx="28" cy="48" rx="11" ry="3" fill="#B0986D" />
+          </>
+        );
       break;
   }
   return (

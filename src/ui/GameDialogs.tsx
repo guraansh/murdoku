@@ -126,6 +126,11 @@ export function GameDialogs({
           ],
           [
             '04',
+            'Compare the witnesses.',
+            '“Closer” means fewer grid steps: add the row gap and column gap, ignoring furniture and walls. A diagonal takes two steps; equal distances do not count as closer. Ordered names run north to south or west to east; they need not line up.',
+          ],
+          [
+            '05',
             'Find the one who stayed.',
             'Use Mark to cross out empty squares, Undo to retrace a move, and Hint when you need help. Once everyone fits all the clues, solve the case and accuse the suspect alone with the victim.',
           ],

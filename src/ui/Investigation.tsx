@@ -117,7 +117,12 @@ export function Investigation(props: InvestigationProps) {
         </Pressable>
       )}
       <View style={[s.gameColumns, compact && { flexDirection: 'column', gap: 32 }]}>
-        <View style={[s.boardColumn, compact && { width: '100%', flex: undefined }]}>
+        <View
+          style={[
+            s.boardColumn,
+            compact && { width: '100%', flexGrow: 0, flexShrink: 0, flexBasis: 'auto' },
+          ]}
+        >
           <View style={s.boardMeta}>
             <Pressable accessibilityRole="button" onPress={props.briefing} style={s.inline}>
               <FileSearch size={14} color={colors.rust} />
@@ -158,7 +163,9 @@ export function Investigation(props: InvestigationProps) {
           </View>
           <ScrollView
             horizontal
-            style={{ flexGrow: 0, height: small ? 75 : 84 }}
+            // RN Web can shrink a horizontal scroller to zero inside the compact
+            // column layout; keeping its height fixed preserves the person targets.
+            style={{ flexGrow: 0, flexShrink: 0, height: small ? 75 : 84 }}
             contentContainerStyle={s.peopleTray}
           >
             {puzzle.people.map((person) => {
@@ -301,7 +308,16 @@ export function Investigation(props: InvestigationProps) {
           </Type>
         </View>
         <View
-          style={[s.notebookColumn, compact && { width: '100%', flex: undefined, marginTop: 0 }]}
+          style={[
+            s.notebookColumn,
+            compact && {
+              width: '100%',
+              flexGrow: 0,
+              flexShrink: 0,
+              flexBasis: 'auto',
+              marginTop: 0,
+            },
+          ]}
         >
           <ClueNotebook
             puzzle={puzzle}

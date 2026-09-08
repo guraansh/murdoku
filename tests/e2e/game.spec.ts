@@ -1,7 +1,15 @@
 import { test, expect } from '@playwright/test';
 import { CASES } from '../../src/game/cases';
 import { CHAPTERS, chapterOf } from '../../src/game/campaign';
-import { culprit } from '../../src/game/engine';
+import { coordinate, culprit, getHint, placementProblem, violations } from '../../src/game/engine';
+
+async function tapPerson(page: import('@playwright/test').Page, id: string) {
+  const person = page.getByTestId(`person-${id}`);
+  // React Native Web nests the horizontal tray inside the page scroller. Centering
+  // the target first avoids the page scroller aligning it beneath the notebook.
+  await person.evaluate((element) => element.scrollIntoView({ block: 'center', inline: 'center' }));
+  await person.click();
+}
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -31,10 +39,10 @@ test('tutorial, placement rules, marks and undo work together', async ({ page })
   await expect(page.getByText('A new detective? Your first clue is right here.')).toHaveCount(0);
   await page.getByTestId('cell-1').click();
   await expect(page.getByText(/writing desk occupies this square/)).toBeVisible();
-  await page.getByTestId('person-iris').click();
+  await tapPerson(page, 'iris');
   await page.getByTestId('cell-33').click();
   await expect(page.getByTestId('cell-33')).toHaveAttribute('aria-label', /Iris/);
-  await page.getByTestId('person-ada').click();
+  await tapPerson(page, 'ada');
   await page.getByTestId('cell-32').click();
   await expect(page.getByText(/Iris is already in row 6/)).toBeVisible();
   await page.getByRole('button', { name: 'Toggle pencil marks' }).click();
@@ -43,7 +51,14 @@ test('tutorial, placement rules, marks and undo work together', async ({ page })
   await page.getByRole('button', { name: 'Undo last move' }).click();
   await expect(page.getByTestId('cell-2')).not.toHaveAttribute('aria-label', /marked empty/);
   await page.getByRole('button', { name: 'Toggle pencil marks' }).click();
-  await page.getByTestId('cell-12').click();
+  const wrongCell = Array.from({ length: 36 }, (_, cell) => cell).find(
+    (cell) =>
+      !placementProblem(CASES[0], { iris: 33 }, 'ada', cell) &&
+      violations(CASES[0], { iris: 33, ada: cell }).includes(
+        "Ada's position contradicts their statement.",
+      ),
+  )!;
+  await page.getByTestId(`cell-${wrongCell}`).click();
   await page.getByRole('button', { name: 'Check scene', exact: true }).click();
   await expect(page.getByText("Ada's position contradicts their statement.")).toBeVisible();
 });
@@ -51,13 +66,18 @@ test('tutorial, placement rules, marks and undo work together', async ({ page })
 test('placements, reviewed clues, marks, hints and undo history survive a reload', async ({
   page,
 }) => {
+  const hint = getHint(CASES[0], {})!;
+  const hintPerson = CASES[0].people.find((person) => person.id === hint.person)!;
+  const square = coordinate(hint.cell!, CASES[0].size);
   await page.getByRole('button', { name: 'Get a hint' }).click();
   await page.getByRole('button', { name: 'Reveal a hint' }).click();
-  await expect(page.getByText(/Iris belongs at D6/)).toBeVisible();
-  await page.getByRole('button', { name: 'Show D6 on the board' }).click();
-  await page.getByTestId('cell-33').click();
-  await page.getByRole('checkbox', { name: "Mark Iris's clue as reviewed" }).click();
-  await expect(page.getByRole('checkbox', { name: "Mark Iris's clue as reviewed" })).toBeChecked();
+  await expect(page.getByText(new RegExp(`${hintPerson.name} belongs at ${square}`))).toBeVisible();
+  await page.getByRole('button', { name: `Show ${square} on the board` }).click();
+  await page.getByTestId(`cell-${hint.cell}`).click();
+  await page.getByRole('checkbox', { name: `Mark ${hintPerson.name}'s clue as reviewed` }).click();
+  await expect(
+    page.getByRole('checkbox', { name: `Mark ${hintPerson.name}'s clue as reviewed` }),
+  ).toBeChecked();
   await page.getByRole('button', { name: 'Toggle pencil marks' }).click();
   await page.getByTestId('cell-2').click();
   await expect
@@ -69,7 +89,9 @@ test('placements, reviewed clues, marks, hints and undo history survive a reload
     .toEqual([2]);
   await page.reload();
   await expect(page.getByTestId('placement-count')).toHaveText('1/6 placed');
-  await expect(page.getByRole('checkbox', { name: "Mark Iris's clue as reviewed" })).toBeChecked();
+  await expect(
+    page.getByRole('checkbox', { name: `Mark ${hintPerson.name}'s clue as reviewed` }),
+  ).toBeChecked();
   await expect(page.getByTestId('cell-2')).toHaveAttribute('aria-label', /marked empty/);
   await page.getByRole('button', { name: 'Undo last move' }).click();
   await expect(page.getByTestId('cell-2')).not.toHaveAttribute('aria-label', /marked empty/);
@@ -105,7 +127,7 @@ test('a case in each difficulty can be completed, with progression and saved res
       });
     }
     for (const [person, cell] of Object.entries(puzzle.solution)) {
-      await page.getByTestId(`person-${person}`).click();
+      await tapPerson(page, person);
       await page.getByTestId(`cell-${cell}`).click();
     }
     await page.getByRole('button', { name: 'Solve case', exact: true }).click();

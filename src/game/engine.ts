@@ -35,24 +35,81 @@ export function ruleStatus(
   let matches = false;
   if (rule.type === 'room') matches = room === rule.room;
   if (rule.type === 'notRoom') matches = room !== rule.room;
+  if (rule.type === 'oneOfRooms') matches = rule.rooms.includes(room);
+  if (rule.type === 'alone') {
+    if (
+      Object.entries(placements).some(
+        ([id, position]) => id !== person && roomAt(puzzle, position) === room,
+      )
+    )
+      return 'broken';
+    return puzzle.people.every((item) => placements[item.id] !== undefined) ? 'met' : 'open';
+  }
+  const distanceTo = (position: number) =>
+    Math.abs(row - Math.floor(position / puzzle.size)) +
+    Math.abs(column - (position % puzzle.size));
+  if (rule.type === 'closerToObject') {
+    const near = puzzle.furniture.find((item) => item.id === rule.near);
+    const far = puzzle.furniture.find((item) => item.id === rule.far);
+    if (!near || !far) return 'broken';
+    matches = distanceTo(near.cell) < distanceTo(far.cell);
+  }
+  if (rule.type === 'closerThan') {
+    const object = puzzle.furniture.find((item) => item.id === rule.object);
+    if (!object) return 'broken';
+    const other = placements[rule.person];
+    if (other === undefined) return 'open';
+    const otherDistance =
+      Math.abs(Math.floor(other / puzzle.size) - Math.floor(object.cell / puzzle.size)) +
+      Math.abs((other % puzzle.size) - (object.cell % puzzle.size));
+    matches = distanceTo(object.cell) < otherDistance;
+  }
   if (rule.type === 'row') matches = row === rule.value;
   if (rule.type === 'column') matches = column === rule.value;
-  if (rule.type === 'beside' || rule.type === 'objectColumn' || rule.type === 'objectRow') {
+  if (
+    rule.type === 'beside' ||
+    rule.type === 'notBeside' ||
+    rule.type === 'objectColumn' ||
+    rule.type === 'objectRow'
+  ) {
     const object = puzzle.furniture.find((item) => item.id === rule.object);
     if (!object) return 'broken';
     const objectRow = Math.floor(object.cell / puzzle.size),
       objectColumn = object.cell % puzzle.size;
-    if (rule.type === 'beside')
+    if (rule.type === 'beside' || rule.type === 'notBeside') {
       matches =
         room === roomAt(puzzle, object.cell) &&
         Math.abs(row - objectRow) + Math.abs(column - objectColumn) === 1;
+      if (rule.type === 'notBeside') matches = !matches;
+    }
     if (rule.type === 'objectColumn') matches = column === objectColumn;
     if (rule.type === 'objectRow') matches = row === objectRow;
   }
-  if (rule.type === 'relative' || rule.type === 'sameRoom') {
+  if (rule.type === 'between') {
+    const value = (position: number) =>
+      rule.axis === 'row' ? Math.floor(position / puzzle.size) : position % puzzle.size;
+    const first = placements[rule.first],
+      second = placements[rule.second];
+    // The named endpoints are ordered north-to-south or west-to-east.
+    if (first !== undefined && value(first) >= value(cell)) return 'broken';
+    if (second !== undefined && value(second) <= value(cell)) return 'broken';
+    return first === undefined || second === undefined ? 'open' : 'met';
+  }
+  if (
+    rule.type === 'relative' ||
+    rule.type === 'sameRoom' ||
+    rule.type === 'differentRoom' ||
+    rule.type === 'personDistance'
+  ) {
     const other = placements[rule.person];
     if (other === undefined) return 'open';
     if (rule.type === 'sameRoom') matches = room === roomAt(puzzle, other);
+    else if (rule.type === 'differentRoom') matches = room !== roomAt(puzzle, other);
+    else if (rule.type === 'personDistance')
+      matches =
+        Math.abs(row - Math.floor(other / puzzle.size)) +
+          Math.abs(column - (other % puzzle.size)) ===
+        rule.distance;
     else {
       const delta =
         rule.direction === 'north'

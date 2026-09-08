@@ -5,6 +5,8 @@ import { coordinate, roomAt, ruleStatus, solvePuzzle } from '../src/game/engine'
 import { Person, Puzzle, Rule } from '../src/game/types';
 import { CAST, HOOKS, OBJECTS, SETTINGS, TITLES } from './authoring/stories';
 import { initialDomains, rateCase, searchCase } from './authoring/solve';
+import { enrichCase } from './authoring/enrich';
+import { witnessStatement } from './authoring/statements';
 
 const PALETTE = [
   ['#F0D9C8', '#8C6049'],
@@ -333,31 +335,6 @@ function author(puzzle: Puzzle, tier: number, seed: number): Puzzle | null {
   return puzzle;
 }
 
-function statement(puzzle: Puzzle, rule: Rule): string {
-  const roomName = (id: string) => puzzle.rooms.find((room) => room.id === id)!.name.toLowerCase();
-  if (rule.type === 'room') return `in the ${roomName(rule.room)}`;
-  if (rule.type === 'notRoom') return `not in the ${roomName(rule.room)}`;
-  if (rule.type === 'row' || rule.type === 'column') {
-    if (rule.type === 'column') return `in column ${String.fromCharCode(65 + rule.value)}`;
-    return rule.value === 0
-      ? 'in the top row'
-      : rule.value === puzzle.size - 1
-        ? 'in the bottom row'
-        : `in row ${rule.value + 1}`;
-  }
-  if (rule.type === 'sameRoom')
-    return `in the same room as ${puzzle.people.find((person) => person.id === rule.person)!.name}`;
-  if (rule.type === 'relative') {
-    const name = puzzle.people.find((person) => person.id === rule.person)!.name;
-    const axis = rule.direction === 'north' || rule.direction === 'south' ? 'row' : 'column';
-    return `${rule.distance === undefined ? '' : `exactly ${rule.distance} ${axis}${rule.distance === 1 ? '' : 's'} `}${rule.direction} of ${name}`;
-  }
-  if (!('object' in rule)) throw new Error('Unsupported statement rule');
-  const object = puzzle.furniture.find((item) => item.id === rule.object)!.name.toLowerCase();
-  return rule.type === 'beside'
-    ? `beside the ${object}`
-    : `in the same ${rule.type === 'objectColumn' ? 'column' : 'row'} as the ${object}`;
-}
 function finish(puzzle: Puzzle, level: number) {
   puzzle.number = String(level).padStart(3, '0');
   if (!puzzle.id.startsWith('generated-')) return puzzle;
@@ -371,13 +348,7 @@ function finish(puzzle: Puzzle, level: number) {
   const victimName = puzzle.people.find((person) => person.id === puzzle.victim)!.name;
   puzzle.introduction = `${HOOKS[level - 1]} ${victimName} has been found dead at ${setting.location}. Every statement in your notebook is true. Reconstruct the scene to discover who was alone with the victim.`;
   puzzle.subtitle = `An unexplained death at ${puzzle.location}.`;
-  for (const clue of puzzle.clues)
-    clue.text =
-      clue.person === puzzle.victim
-        ? `${puzzle.people.find((person) => person.id === puzzle.victim)!.name} was alone with the murderer in the same room.`
-        : clue.rules
-            .map((rule, index) => `${index ? 'And I was' : 'I was'} ${statement(puzzle, rule)}.`)
-            .join(' ');
+  for (const clue of puzzle.clues) clue.text = witnessStatement(puzzle, clue);
   const victimCell = puzzle.solution[puzzle.victim],
     victim = puzzle.people.find((person) => person.id === puzzle.victim)!;
   const killer = puzzle.people.find(
@@ -423,7 +394,7 @@ for (let tier = 0; tier < 5; tier++) {
       a.rating!.score - b.rating!.score ||
       (a === legacy ? -1 : b === legacy ? 1 : a.id.localeCompare(b.id)),
   );
-  book.push(...cases.map((puzzle, i) => finish(puzzle, tier * 20 + i + 1)));
+  book.push(...cases.map((puzzle, i) => enrichCase(finish(puzzle, tier * 20 + i + 1))));
 }
 // Never publish a catalog unless a second solver agrees on every answer.
 for (const puzzle of book) {

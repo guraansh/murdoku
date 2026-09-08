@@ -1,5 +1,17 @@
 import { culprit, roomAt, ruleStatus } from '../../src/game/engine';
-import { Placements, Puzzle } from '../../src/game/types';
+import { Placements, Puzzle, Rule } from '../../src/game/types';
+
+export const relationshipWeight = (rule: Rule) =>
+  rule.type === 'between'
+    ? 2
+    : rule.type === 'relative' ||
+        rule.type === 'sameRoom' ||
+        rule.type === 'differentRoom' ||
+        rule.type === 'closerThan' ||
+        rule.type === 'alone' ||
+        rule.type === 'personDistance'
+      ? 1
+      : 0;
 
 export function initialDomains(puzzle: Puzzle) {
   const blocked = new Set(puzzle.furniture.map((item) => item.cell));
@@ -28,22 +40,62 @@ export function searchCase(puzzle: Puzzle, limit = 2, budget = 30000) {
   for (const clue of puzzle.clues) {
     const i = ids.indexOf(clue.person);
     for (const rule of clue.rules) {
-      if (rule.type !== 'relative' && rule.type !== 'sameRoom') continue;
+      if (rule.type === 'alone') {
+        for (let j = 0; j < n; j++) {
+          if (i === j) continue;
+          pairs[i][j].push((a, b) => rooms[a] !== rooms[b]);
+          pairs[j][i].push((a, b) => rooms[a] !== rooms[b]);
+        }
+        continue;
+      }
+      if (rule.type === 'closerThan') {
+        const object = puzzle.furniture.find((item) => item.id === rule.object)!;
+        const distance = (cell: number) =>
+          Math.abs(Math.floor(cell / n) - Math.floor(object.cell / n)) +
+          Math.abs((cell % n) - (object.cell % n));
+        const j = ids.indexOf(rule.person);
+        pairs[i][j].push((a, b) => distance(a) < distance(b));
+        pairs[j][i].push((a, b) => distance(a) > distance(b));
+        continue;
+      }
+      if (rule.type === 'between') {
+        const axis = (cell: number) => (rule.axis === 'row' ? Math.floor(cell / n) : cell % n);
+        const first = ids.indexOf(rule.first),
+          second = ids.indexOf(rule.second);
+        pairs[first][i].push((a, b) => axis(a) < axis(b));
+        pairs[i][first].push((a, b) => axis(a) > axis(b));
+        pairs[i][second].push((a, b) => axis(a) < axis(b));
+        pairs[second][i].push((a, b) => axis(a) > axis(b));
+        continue;
+      }
+      if (
+        rule.type !== 'relative' &&
+        rule.type !== 'sameRoom' &&
+        rule.type !== 'differentRoom' &&
+        rule.type !== 'personDistance'
+      )
+        continue;
       const j = ids.indexOf(rule.person);
       const check =
         rule.type === 'sameRoom'
           ? (a: number, b: number) => rooms[a] === rooms[b]
-          : (a: number, b: number) => {
-              const delta =
-                rule.direction === 'north'
-                  ? Math.floor(b / n) - Math.floor(a / n)
-                  : rule.direction === 'south'
-                    ? Math.floor(a / n) - Math.floor(b / n)
-                    : rule.direction === 'east'
-                      ? (a % n) - (b % n)
-                      : (b % n) - (a % n);
-              return rule.distance === undefined ? delta > 0 : delta === rule.distance;
-            };
+          : rule.type === 'differentRoom'
+            ? (a: number, b: number) => rooms[a] !== rooms[b]
+            : rule.type === 'personDistance'
+              ? (a: number, b: number) =>
+                  Math.abs(Math.floor(a / n) - Math.floor(b / n)) + Math.abs((a % n) - (b % n)) ===
+                  rule.distance
+              : (a: number, b: number) => {
+                  const delta =
+                    rule.direction === 'north'
+                      ? Math.floor(b / n) - Math.floor(a / n)
+                      : rule.direction === 'south'
+                        ? Math.floor(a / n) - Math.floor(b / n)
+                        : rule.direction === 'east'
+                          ? (a % n) - (b % n)
+                          : (b % n) - (a % n);
+                  return rule.distance === undefined ? delta > 0 : delta === rule.distance;
+                };
       pairs[i][j].push(check);
       pairs[j][i].push((b, a) => check(a, b));
     }
@@ -106,9 +158,7 @@ export function rateCase(puzzle: Puzzle, tier: number): NonNullable<Puzzle['rati
     (sum, domain, i) => sum + (puzzle.people[i].id === puzzle.victim ? 0 : domain.length),
     0,
   );
-  const relationships = rules.filter(
-    (rule) => rule.type === 'relative' || rule.type === 'sameRoom',
-  ).length;
+  const relationships = rules.reduce((sum, rule) => sum + relationshipWeight(rule), 0);
   const directClues = rules.filter((rule) => rule.type === 'row' || rule.type === 'column').length;
   const negatives = rules.filter((rule) => rule.type === 'notRoom').length;
   const result = searchCase(puzzle);

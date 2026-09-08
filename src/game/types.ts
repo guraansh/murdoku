@@ -27,15 +27,22 @@ export type Furniture = { id: string; name: string; kind: FurnitureKind; cell: n
 export type Rule =
   | { type: 'room'; room: string }
   | { type: 'notRoom'; room: string }
+  | { type: 'oneOfRooms'; rooms: [string, string] }
+  | { type: 'alone' }
   | { type: 'row' | 'column'; value: number }
-  | { type: 'beside' | 'objectColumn' | 'objectRow'; object: string }
+  | { type: 'beside' | 'notBeside' | 'objectColumn' | 'objectRow'; object: string }
+  | { type: 'closerToObject'; near: string; far: string }
+  | { type: 'closerThan'; person: string; object: string }
   | {
       type: 'relative';
       person: string;
       direction: 'north' | 'south' | 'east' | 'west';
       distance?: number;
     }
-  | { type: 'sameRoom'; person: string };
+  | { type: 'sameRoom'; person: string }
+  | { type: 'differentRoom'; person: string }
+  | { type: 'personDistance'; person: string; distance: number }
+  | { type: 'between'; first: string; second: string; axis: 'row' | 'column' };
 export type Clue = { person: string; text: string; rules: Rule[] };
 export type Puzzle = {
   id: string;

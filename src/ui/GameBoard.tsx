@@ -23,10 +23,11 @@ export function GameBoard({
   highlight?: number;
 }) {
   const [available, setAvailable] = useState(360);
-  const [showObjects, setShowObjects] = useState(false);
+  const [showObjects, setShowObjects] = useState(true);
   const small = useWindowDimensions().width < 500;
   const boardSize = Math.max(puzzle.size * 44, Math.min(available - 24, 400));
   const tileSize = boardSize / puzzle.size;
+  const furnitureSize = Math.min(tileSize * 0.82, tileSize - 4);
   const placedByCell = Object.fromEntries(
     Object.entries(session.placements).map(([person, cell]) => [cell, person]),
   );
@@ -127,7 +128,7 @@ export function GameBoard({
                             <FurnitureArt
                               kind={object.kind}
                               color={room.ink}
-                              size={tileSize * 0.67}
+                              size={furnitureSize}
                             />
                           )}
                           {occupant && (
@@ -192,22 +193,29 @@ export function GameBoard({
         onPress={() => setShowObjects(!showObjects)}
         style={s.keyToggle}
       >
-        <Type style={s.legendText}>{showObjects ? 'Hide furniture key' : 'Furniture key'}</Type>
+        <View style={s.keyToggleCopy}>
+          <Eyebrow>FURNITURE KEY</Eyebrow>
+          <Type style={s.keyToggleLabel}>
+            {showObjects
+              ? 'Names and coordinates'
+              : `${puzzle.furniture.length} objects on this plan`}
+          </Type>
+        </View>
         {showObjects ? (
-          <ChevronUp size={13} color={colors.muted} />
+          <ChevronUp size={18} color={colors.secondary} />
         ) : (
-          <ChevronDown size={13} color={colors.muted} />
+          <ChevronDown size={18} color={colors.secondary} />
         )}
       </Pressable>
       {showObjects && (
-        <View style={s.objectKey}>
+        <View style={[s.objectKey, small && s.objectKeySmall]}>
           {puzzle.furniture.map((object) => (
-            <View key={object.id} style={s.objectKeyItem}>
-              <FurnitureArt kind={object.kind} color={colors.secondary} size={21} />
-              <Type style={[s.legendText, { flex: 1 }]}>{object.name}</Type>
-              <Type style={[s.legendText, { fontFamily: fonts.bold }]}>
-                {coordinate(object.cell, puzzle.size)}
-              </Type>
+            <View key={object.id} style={[s.objectKeyItem, !small && s.objectKeyItemWide]}>
+              <View style={s.objectIcon}>
+                <FurnitureArt kind={object.kind} color={colors.secondary} size={29} />
+              </View>
+              <Type style={s.objectName}>{object.name}</Type>
+              <Type style={s.objectCoordinate}>{coordinate(object.cell, puzzle.size)}</Type>
             </View>
           ))}
         </View>
@@ -262,15 +270,60 @@ const s = StyleSheet.create({
   swatch: { height: 9, width: 9, borderRadius: 2, borderWidth: 0.5, borderColor: '#77777733' },
   legendText: { fontSize: 10, lineHeight: 15, color: colors.secondary },
   keyToggle: {
-    alignSelf: 'center',
+    alignSelf: 'stretch',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    minHeight: 44,
-    paddingHorizontal: 12,
+    justifyContent: 'space-between',
+    minHeight: 56,
+    marginTop: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 13,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 9,
+    backgroundColor: colors.background,
   },
-  objectKey: { gap: 6, padding: 12, borderRadius: 8, backgroundColor: colors.background },
-  objectKeyItem: { flexDirection: 'row', gap: 9, alignItems: 'center', minHeight: 25 },
+  keyToggleCopy: { gap: 2 },
+  keyToggleLabel: { fontSize: 11, color: colors.secondary, lineHeight: 16 },
+  objectKey: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    padding: 10,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 9,
+    backgroundColor: colors.paper,
+  },
+  objectKeySmall: { gap: 6 },
+  objectKeyItem: {
+    width: '100%',
+    minHeight: 42,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 5,
+    borderRadius: 7,
+    backgroundColor: colors.background,
+  },
+  objectKeyItemWide: { width: '48%' },
+  objectIcon: {
+    height: 36,
+    width: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 7,
+    backgroundColor: colors.paper,
+  },
+  objectName: { flex: 1, fontSize: 11, lineHeight: 16, color: colors.secondary },
+  objectCoordinate: {
+    fontSize: 11,
+    lineHeight: 16,
+    color: colors.secondary,
+    fontFamily: fonts.bold,
+  },
   rule: {
     marginTop: 20,
     paddingTop: 15,

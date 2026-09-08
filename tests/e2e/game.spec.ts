@@ -90,8 +90,9 @@ test('a case in each difficulty can be completed, with progression and saved res
       await page.getByTestId(`open-case-${puzzle.id}`).click();
     }
     if (index === 4) {
-      await page.getByRole('button', { name: 'Furniture key', exact: true }).click();
       await expect(page.getByText(puzzle.furniture[0].name, { exact: true })).toBeVisible();
+      await page.getByRole('button', { name: 'Furniture key', exact: true }).click();
+      await expect(page.getByText(puzzle.furniture[0].name, { exact: true })).toBeHidden();
       await page.getByRole('button', { name: 'Furniture key', exact: true }).click();
       const square = await page.getByTestId('cell-0').boundingBox();
       expect(square!.width).toBeGreaterThanOrEqual(44);

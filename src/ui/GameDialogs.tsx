@@ -224,6 +224,17 @@ export function GameDialogs({
       >
         <View style={s.settingRow}>
           <View style={{ flex: 1 }}>
+            <Type style={s.helpTitle}>Sound effects</Type>
+            <Type style={s.helpText}>Soft taps and a chime when a case closes.</Type>
+          </View>
+          <Switch
+            accessibilityLabel="Sound effects"
+            value={save.sound !== false}
+            onValueChange={(value) => setSave((previous) => ({ ...previous, sound: value }))}
+          />
+        </View>
+        <View style={s.settingRow}>
+          <View style={{ flex: 1 }}>
             <Type style={s.helpTitle}>Haptic feedback</Type>
             <Type style={s.helpText}>A gentle tap for each deduction on mobile.</Type>
           </View>

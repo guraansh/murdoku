@@ -18,6 +18,7 @@ const mime = {
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon',
   '.css': 'text/css',
+  '.wav': 'audio/wav',
 };
 
 http

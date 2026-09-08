@@ -84,4 +84,5 @@ export type SaveData = {
   sessions: Record<string, GameSession>;
   tutorialSeen: boolean;
   haptics: boolean;
+  sound?: boolean;
 };

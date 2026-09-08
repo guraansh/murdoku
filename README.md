@@ -34,9 +34,11 @@ Witnesses give one to three short facts, with no narrative filler, coordinates, 
 - Case briefing, rules guide, accusation, culprit explanation, and casebook progress.
 - Device-local saves for placements, notes, history, hints, completion, and active play time.
 - Timer pauses in dialogs, in the case library, and when the app is backgrounded.
-- Mobile haptics, safe-area support, Android back handling, and responsive tablet/web layouts.
-- On narrow screens, the selected person’s statement also appears beside the controls. Larger grids and suspect trays scroll horizontally to retain usable touch targets.
-- A furniture key identifies every object by name and coordinate, including similar illustrations.
+- Fixed play screen with a fitted board, suspect dock, paged testimony, and persistent action controls. Tablet landscape places the dock beside the board.
+- Chapter and case selection without page scrolling. Help, briefings, and other long reference dialogs remain scrollable.
+- Soft bundled sound effects for taps, errors, and solved cases; separate saved sound and haptic switches. iOS silent mode is respected. Native haptics distinguish selection, placement, rejection, and completion.
+- Animated screen, testimony, and token entrances respect the system reduced-motion preference.
+- An Objects panel pages through named furniture illustrations and coordinates without moving the board.
 
 Hints reveal an authored position, or identify a placement to revisit; they are counted and never place a token automatically. Clue checkboxes are player annotations. The Check scene action evaluates the actual rules and statements. A correct completed board unlocks the accusation.
 

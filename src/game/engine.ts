@@ -368,6 +368,7 @@ export function restoreSave(raw: string | null, puzzles: Puzzle[]): SaveData {
         : fallback.activeCase,
       tutorialSeen: data.tutorialSeen === true,
       haptics: data.haptics !== false,
+      sound: data.sound !== false,
     };
   } catch {
     return fallback;

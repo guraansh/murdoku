@@ -6,6 +6,7 @@ import { GameSession, Puzzle } from '../game/types';
 import { FurnitureArt, Portrait } from './Illustrations';
 import { Eyebrow, Type } from './primitives';
 import { colors, fonts } from './theme';
+import { Motion } from './Motion';
 
 export function GameBoard({
   puzzle,
@@ -14,6 +15,7 @@ export function GameBoard({
   mode,
   onCell,
   highlight,
+  fitSize,
 }: {
   puzzle: Puzzle;
   session: GameSession;
@@ -21,11 +23,12 @@ export function GameBoard({
   mode: 'place' | 'mark';
   onCell: (cell: number) => void;
   highlight?: number;
+  fitSize?: number;
 }) {
   const [available, setAvailable] = useState(360);
   const [showObjects, setShowObjects] = useState(true);
   const small = useWindowDimensions().width < 500;
-  const boardSize = Math.max(puzzle.size * 44, Math.min(available - 24, 400));
+  const boardSize = fitSize ?? Math.max(puzzle.size * 44, Math.min(available - 24, 400));
   const tileSize = boardSize / puzzle.size;
   const furnitureSize = Math.min(tileSize * 0.82, tileSize - 4);
   const blockedCells = new Set([
@@ -89,17 +92,30 @@ export function GameBoard({
     Object.entries(session.placements).map(([person, cell]) => [cell, person]),
   );
   return (
-    <View style={[s.card, small && { padding: 14 }]}>
-      <View style={s.top}>
-        <View>
-          <Eyebrow>THE CRIME SCENE</Eyebrow>
-          <Type style={s.location}>{puzzle.location}</Type>
+    <View
+      style={[
+        s.card,
+        small && { padding: 14 },
+        fitSize !== undefined && {
+          padding: 0,
+          borderWidth: 0,
+          backgroundColor: 'transparent',
+          boxShadow: 'none',
+        },
+      ]}
+    >
+      {fitSize === undefined && (
+        <View style={s.top}>
+          <View>
+            <Eyebrow>THE CRIME SCENE</Eyebrow>
+            <Type style={s.location}>{puzzle.location}</Type>
+          </View>
+          <View style={s.compass}>
+            <Compass size={24} strokeWidth={1.3} color={colors.muted} />
+            <Type style={s.north}>N</Type>
+          </View>
         </View>
-        <View style={s.compass}>
-          <Compass size={24} strokeWidth={1.3} color={colors.muted} />
-          <Type style={s.north}>N</Type>
-        </View>
-      </View>
+      )}
       <View style={s.boardOuter} onLayout={(event) => setAvailable(event.nativeEvent.layout.width)}>
         <ScrollView
           horizontal
@@ -190,11 +206,13 @@ export function GameBoard({
                             />
                           )}
                           {occupant && (
-                            <Portrait
-                              person={occupant}
-                              size={tileSize * 0.82}
-                              faded={occupant.id === puzzle.victim}
-                            />
+                            <Motion identity={occupant.id}>
+                              <Portrait
+                                person={occupant}
+                                size={tileSize * 0.82}
+                                faded={occupant.id === puzzle.victim}
+                              />
+                            </Motion>
                           )}
                           {!occupant && !object && marked && (
                             <X size={tileSize * 0.3} color={room.ink} strokeWidth={1.4} />
@@ -256,55 +274,59 @@ export function GameBoard({
           </View>
         </ScrollView>
       </View>
-      {boardSize + 24 > available + 1 && (
+      {fitSize === undefined && boardSize + 24 > available + 1 && (
         <Type style={{ fontSize: 10, color: colors.muted, textAlign: 'center', marginTop: 5 }}>
           Slide the floor plan to see every column.
         </Type>
       )}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Furniture key"
-        accessibilityState={{ expanded: showObjects }}
-        aria-expanded={showObjects}
-        onPress={() => setShowObjects(!showObjects)}
-        style={s.keyToggle}
-      >
-        <View style={s.keyToggleCopy}>
-          <Eyebrow>FURNITURE KEY</Eyebrow>
-          <Type style={s.keyToggleLabel}>
-            {showObjects
-              ? 'Names and coordinates'
-              : `${puzzle.furniture.length} objects on this plan`}
-          </Type>
-        </View>
-        {showObjects ? (
-          <ChevronUp size={18} color={colors.secondary} />
-        ) : (
-          <ChevronDown size={18} color={colors.secondary} />
-        )}
-      </Pressable>
-      {showObjects && (
-        <View style={[s.objectKey, small && s.objectKeySmall]}>
-          {puzzle.furniture.map((object) => (
-            <View key={object.id} style={[s.objectKeyItem, !small && s.objectKeyItemWide]}>
-              <View style={s.objectIcon}>
-                <FurnitureArt
-                  kind={object.kind}
-                  name={object.name}
-                  color={colors.secondary}
-                  size={29}
-                />
-              </View>
-              <Type style={s.objectName}>{object.name}</Type>
-              <Type style={s.objectCoordinate}>{coordinate(object.cell, puzzle.size)}</Type>
+      {fitSize === undefined && (
+        <>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Furniture key"
+            accessibilityState={{ expanded: showObjects }}
+            aria-expanded={showObjects}
+            onPress={() => setShowObjects(!showObjects)}
+            style={s.keyToggle}
+          >
+            <View style={s.keyToggleCopy}>
+              <Eyebrow>FURNITURE KEY</Eyebrow>
+              <Type style={s.keyToggleLabel}>
+                {showObjects
+                  ? 'Names and coordinates'
+                  : `${puzzle.furniture.length} objects on this plan`}
+              </Type>
             </View>
-          ))}
-        </View>
+            {showObjects ? (
+              <ChevronUp size={18} color={colors.secondary} />
+            ) : (
+              <ChevronDown size={18} color={colors.secondary} />
+            )}
+          </Pressable>
+          {showObjects && (
+            <View style={[s.objectKey, small && s.objectKeySmall]}>
+              {puzzle.furniture.map((object) => (
+                <View key={object.id} style={[s.objectKeyItem, !small && s.objectKeyItemWide]}>
+                  <View style={s.objectIcon}>
+                    <FurnitureArt
+                      kind={object.kind}
+                      name={object.name}
+                      color={colors.secondary}
+                      size={29}
+                    />
+                  </View>
+                  <Type style={s.objectName}>{object.name}</Type>
+                  <Type style={s.objectCoordinate}>{coordinate(object.cell, puzzle.size)}</Type>
+                </View>
+              ))}
+            </View>
+          )}
+          <View style={s.rule}>
+            <View style={s.ruleDot} />
+            <Type style={s.ruleText}>One person per row. One person per column.</Type>
+          </View>
+        </>
       )}
-      <View style={s.rule}>
-        <View style={s.ruleDot} />
-        <Type style={s.ruleText}>One person per row. One person per column.</Type>
-      </View>
     </View>
   );
 }

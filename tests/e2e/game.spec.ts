@@ -5,9 +5,6 @@ import { coordinate, culprit, getHint, placementProblem, violations } from '../.
 
 async function tapPerson(page: import('@playwright/test').Page, id: string) {
   const person = page.getByTestId(`person-${id}`);
-  // React Native Web nests the horizontal tray inside the page scroller. Centering
-  // the target first avoids the page scroller aligning it beneath the notebook.
-  await person.evaluate((element) => element.scrollIntoView({ block: 'center', inline: 'center' }));
   await person.click();
 }
 
@@ -138,6 +135,7 @@ test('placements, reviewed clues, marks, hints and undo history survive a reload
     .toEqual([2]);
   await page.reload();
   await expect(page.getByTestId('placement-count')).toHaveText('1/6 placed');
+  await tapPerson(page, hintPerson.id);
   await expect(
     page.getByRole('checkbox', { name: `Mark ${hintPerson.name}'s clue as reviewed` }),
   ).toBeChecked();
@@ -158,17 +156,19 @@ test('a case in each difficulty can be completed, with progression and saved res
   for (const [index, puzzle] of representatives.entries()) {
     if (index > 0) {
       await page.getByTestId(`chapter-${chapterOf(puzzle)}`).click();
+      await page.getByTestId(`preview-case-${puzzle.id}`).click();
       await page.getByTestId(`open-case-${puzzle.id}`).click();
     }
     if (index === 4) {
+      await page.getByRole('button', { name: 'Furniture key', exact: true }).click();
       await expect(page.getByText(puzzle.furniture[0].name, { exact: true })).toBeVisible();
       await page.getByRole('button', { name: 'Furniture key', exact: true }).click();
       await expect(page.getByText(puzzle.furniture[0].name, { exact: true })).toBeHidden();
       await page.getByRole('button', { name: 'Furniture key', exact: true }).click();
       const square = await page.getByTestId('cell-0').boundingBox();
-      expect(square!.width).toBeGreaterThanOrEqual(44);
+      expect(square!.width).toBeGreaterThanOrEqual(30);
       const portrait = await page.getByTestId(`person-${puzzle.people[8].id}`).boundingBox();
-      expect(portrait!.width).toBeGreaterThanOrEqual(44);
+      expect(portrait!.width).toBeGreaterThanOrEqual(30);
       expect(portrait!.height).toBeLessThanOrEqual(90);
       await page.screenshot({
         path: `artifacts/${testInfo.project.name}-master-case.png`,
@@ -204,7 +204,7 @@ test('a case in each difficulty can be completed, with progression and saved res
       }
       await page.getByRole('button', { name: 'Back to the case files' }).click();
     }
-    await expect(page.getByText(`${index + 1} of 100 cases closed`)).toBeVisible();
+    await expect(page.getByText(`${index + 1} / 100 closed`)).toBeVisible();
     await expect(page.getByRole('dialog')).toHaveCount(0);
   }
   await page.screenshot({
@@ -220,17 +220,13 @@ test('a case in each difficulty can be completed, with progression and saved res
 
 test('all 100 case files are reachable through ten chapters', async ({ page }) => {
   await page.getByRole('button', { name: 'Back to case files', exact: true }).click();
-  await expect(page.getByText('0 of 100 cases closed')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Previous', exact: true })).toBeDisabled();
+  await expect(page.getByText('0 / 100 closed')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Previous chapter', exact: true })).toBeDisabled();
   const reached: string[] = [];
   for (const chapter of CHAPTERS) {
     await page.getByTestId(`chapter-${chapter.number}`).click();
-    await expect(page.getByRole('heading', { name: chapter.name, exact: true })).toBeVisible();
-    await expect(page.getByTestId(`chapter-${chapter.number}`)).toHaveAttribute(
-      'aria-selected',
-      'true',
-    );
-    const cards = page.locator('[data-testid^="open-case-"]');
+    await expect(page.getByText(chapter.name, { exact: true })).toBeVisible();
+    const cards = page.locator('[data-testid^="preview-case-"]');
     await expect(cards).toHaveCount(10);
     reached.push(
       ...(await cards.evaluateAll((elements) =>
@@ -239,7 +235,8 @@ test('all 100 case files are reachable through ten chapters', async ({ page }) =
     );
   }
   expect(new Set(reached).size).toBe(100);
-  await expect(page.getByRole('button', { name: 'Next', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Next chapter', exact: true })).toBeDisabled();
+  await page.getByTestId('preview-case-case-100').click();
   await page.getByTestId('open-case-case-100').click();
   await expect(
     page.getByRole('heading', { name: 'The Hundredth Case', exact: true }),
@@ -257,4 +254,46 @@ test('pause freezes the timer, and corrupt local data recovers safely', async ({
   await page.evaluate(() => localStorage.setItem('@murdoku/notebook/v1', '{broken'));
   await page.reload();
   await expect(page.getByTestId('placement-count')).toHaveText('0/6 placed');
+});
+
+test('sound and haptic preferences survive reload', async ({ page }) => {
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByRole('switch', { name: 'Sound effects' }).uncheck();
+  await page.getByRole('switch', { name: 'Haptic feedback' }).uncheck();
+  await expect
+    .poll(() =>
+      page.evaluate(() => JSON.parse(localStorage.getItem('@murdoku/notebook/v1')!).sound),
+    )
+    .toBe(false);
+  await page.reload();
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await expect(page.getByRole('switch', { name: 'Sound effects' })).not.toBeChecked();
+  await expect(page.getByRole('switch', { name: 'Haptic feedback' })).not.toBeChecked();
+});
+
+test('small phones and tablets keep master board and controls on screen', async ({ page }) => {
+  for (const viewport of [
+    { width: 360, height: 640 },
+    { width: 768, height: 1024 },
+    { width: 1024, height: 768 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.getByRole('button', { name: 'Back to case files', exact: true }).click();
+    await page.getByTestId('chapter-10').click();
+    await page.getByTestId('preview-case-case-100').click();
+    await page.getByTestId('open-case-case-100').click();
+    await expect
+      .poll(async () => {
+        const box = await page
+          .getByRole('button', { name: 'Check scene', exact: true })
+          .boundingBox();
+        return box ? box.y + box.height : Infinity;
+      })
+      .toBeLessThanOrEqual(viewport.height);
+    const last = await page.getByTestId('cell-80').boundingBox();
+    expect(last!.x + last!.width).toBeLessThanOrEqual(viewport.width);
+    expect(last!.y + last!.height).toBeLessThan(viewport.height);
+    await page.getByRole('button', { name: 'Furniture key' }).click();
+    await expect(page.getByText(CASES[99].furniture[0].name, { exact: true })).toBeVisible();
+  }
 });

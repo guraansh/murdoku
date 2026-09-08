@@ -1,10 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   AppState,
   BackHandler,
   Platform,
   Pressable,
-  ScrollView,
   useWindowDimensions,
   View,
 } from 'react-native';
@@ -26,9 +25,11 @@ import {
   violations,
 } from './src/game/engine';
 import { useGame } from './src/game/useGame';
-import { CaseLibrary } from './src/ui/CaseLibrary';
+import { CaseMenu } from './src/ui/CaseMenu';
 import { Dialog, GameDialogs } from './src/ui/GameDialogs';
-import { Investigation } from './src/ui/Investigation';
+import { PlayScreen } from './src/ui/PlayScreen';
+import { Motion } from './src/ui/Motion';
+import { useSound } from './src/ui/useSound';
 import { Type } from './src/ui/primitives';
 import { s } from './src/ui/styles';
 import { colors } from './src/ui/theme';
@@ -68,8 +69,6 @@ function Murdoku() {
   const [showValidation, setShowValidation] = useState(false);
   const [highlight, setHighlight] = useState<number>();
   const [foreground, setForeground] = useState(true);
-  const scroll = useRef<ScrollView>(null);
-  const solvedCount = CASES.filter((item) => save.sessions[item.id]?.solved).length;
 
   useEffect(() => {
     setSelected(puzzle.people[0].id);
@@ -117,11 +116,15 @@ function Murdoku() {
     return () => back.remove();
   }, [dialog, screen]);
 
-  function buzz(success = false) {
+  const sound = useSound(save.sound !== false && foreground);
+  function buzz(success = false, placement = false) {
+    sound(success ? 'success' : 'tap');
     if (!save.haptics || Platform.OS === 'web') return;
     (success
       ? Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-      : Haptics.selectionAsync()
+      : placement
+        ? Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+        : Haptics.selectionAsync()
     ).catch(() => {});
   }
   function choosePerson(id: string) {
@@ -170,6 +173,9 @@ function Murdoku() {
     }
     const problem = placementProblem(puzzle, session.placements, selected, cell);
     if (problem) {
+      sound('error');
+      if (save.haptics && Platform.OS !== 'web')
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
       setFeedback({ text: problem, error: true });
       return;
     }
@@ -181,7 +187,7 @@ function Murdoku() {
     );
     setHighlight(undefined);
     setFeedback(null);
-    buzz();
+    buzz(false, true);
   }
   function checkScene() {
     if (session.solved) {
@@ -191,6 +197,7 @@ function Murdoku() {
     setShowValidation(true);
     const problems = violations(puzzle, session.placements);
     if (problems.length) {
+      sound('error');
       setFeedback({
         text:
           problems[0] +
@@ -209,14 +216,14 @@ function Murdoku() {
     setDialog('accuse');
   }
   function library() {
+    buzz();
     setScreen('library');
-    scroll.current?.scrollTo({ y: 0, animated: false });
   }
   function openCase(id: string) {
+    buzz();
     setSave((previous) => ({ ...previous, activeCase: id }));
     setScreen('game');
     setDialog(null);
-    scroll.current?.scrollTo({ y: 0, animated: false });
   }
   if (!ready)
     return (
@@ -229,140 +236,117 @@ function Murdoku() {
   return (
     <SafeAreaView style={s.safe} edges={['top', 'left', 'right', 'bottom']}>
       <StatusBar style="dark" />
-      <View style={s.headerBorder}>
-        <View style={[s.header, small && { paddingHorizontal: 18, height: 74, gap: 10 }]}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Murdoku case files"
-            onPress={library}
-            style={s.brand}
-          >
-            <View style={s.brandMark}>
-              <Grid2X2 size={26} color={colors.green} strokeWidth={1.4} />
-              <View style={s.brandDot} />
-            </View>
-            <Type style={s.logo}>
-              murdoku<Type style={{ color: colors.rust, fontSize: 32 }}>.</Type>
-            </Type>
-          </Pressable>
-          {width >= 700 && (
-            <View style={s.navigation}>
-              <Pressable accessibilityRole="button" onPress={library} style={s.navItem}>
-                <FolderOpen size={16} color={colors.green} />
-                <Type style={s.navText}>Case files</Type>
+      {screen === 'library' && (
+        <View style={s.headerBorder}>
+          <View style={[s.header, small && { paddingHorizontal: 18, height: 74, gap: 10 }]}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Murdoku case files"
+              onPress={library}
+              style={s.brand}
+            >
+              <View style={s.brandMark}>
+                <Grid2X2 size={26} color={colors.green} strokeWidth={1.4} />
+                <View style={s.brandDot} />
+              </View>
+              <Type style={s.logo}>
+                murdoku<Type style={{ color: colors.rust, fontSize: 32 }}>.</Type>
+              </Type>
+            </Pressable>
+            {width >= 700 && (
+              <View style={s.navigation}>
+                <Pressable accessibilityRole="button" onPress={library} style={s.navItem}>
+                  <FolderOpen size={16} color={colors.green} />
+                  <Type style={s.navText}>Case files</Type>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => setDialog('notebook')}
+                  style={s.navItem}
+                >
+                  <BookOpen size={16} color={colors.secondary} />
+                  <Type style={[s.navText, { color: colors.secondary }]}>My notebook</Type>
+                </Pressable>
+              </View>
+            )}
+            <View style={s.headerActions}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="How to play"
+                onPress={() => setDialog('help')}
+                style={s.iconButton}
+              >
+                <CircleHelp size={19} color={colors.secondary} />
+                {!compact && (
+                  <Type style={{ fontSize: 12, color: colors.secondary }}>How to play</Type>
+                )}
               </Pressable>
               <Pressable
                 accessibilityRole="button"
-                onPress={() => setDialog('notebook')}
-                style={s.navItem}
+                accessibilityLabel="Settings"
+                onPress={() => setDialog('settings')}
+                style={s.iconButton}
               >
-                <BookOpen size={16} color={colors.secondary} />
-                <Type style={[s.navText, { color: colors.secondary }]}>My notebook</Type>
+                <Settings2 size={19} color={colors.secondary} />
               </Pressable>
             </View>
+          </View>
+        </View>
+      )}
+      <Motion identity={screen + puzzle.id} style={{ flex: 1 }}>
+        <View style={{ flex: 1 }}>
+          {game.storageError && (
+            <View style={s.alert}>
+              <Type>
+                Progress could not be saved on this device. Keep this game open while you play.
+              </Type>
+            </View>
           )}
-          <View style={s.headerActions}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="How to play"
-              onPress={() => setDialog('help')}
-              style={s.iconButton}
-            >
-              <CircleHelp size={19} color={colors.secondary} />
-              {!compact && (
-                <Type style={{ fontSize: 12, color: colors.secondary }}>How to play</Type>
-              )}
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Settings"
-              onPress={() => setDialog('settings')}
-              style={s.iconButton}
-            >
-              <Settings2 size={19} color={colors.secondary} />
-            </Pressable>
-          </View>
+          {screen === 'library' ? (
+            <CaseMenu save={save} openCase={openCase} />
+          ) : (
+            <PlayScreen
+              settings={() => setDialog('settings')}
+              puzzle={puzzle}
+              session={session}
+              compact={compact}
+              small={small}
+              selected={selected}
+              mode={mode}
+              tutorialSeen={save.tutorialSeen}
+              showValidation={showValidation}
+              highlight={highlight}
+              feedback={feedback}
+              library={library}
+              help={() => setDialog('help')}
+              briefing={() => setDialog('briefing')}
+              pause={() => setDialog('pause')}
+              hint={() => setDialog('hint')}
+              check={checkScene}
+              undo={() => {
+                updateSession(undoSession);
+                setFeedback(null);
+                setHighlight(undefined);
+                buzz();
+              }}
+              toggleMark={() => {
+                setMode(mode === 'mark' ? 'place' : 'mark');
+                buzz();
+              }}
+              onCell={cellPressed}
+              choosePerson={choosePerson}
+              checkClue={(id) =>
+                updateSession((current) => ({
+                  ...current,
+                  checkedClues: current.checkedClues.includes(id)
+                    ? current.checkedClues.filter((item) => item !== id)
+                    : [...current.checkedClues, id],
+                }))
+              }
+            />
+          )}
         </View>
-      </View>
-      <ScrollView
-        ref={scroll}
-        contentContainerStyle={[
-          s.page,
-          compact && { paddingHorizontal: small ? 16 : 32, paddingTop: 24 },
-        ]}
-        showsVerticalScrollIndicator={false}
-      >
-        {game.storageError && (
-          <View style={s.alert}>
-            <Type>
-              Progress could not be saved on this device. Keep this game open while you play.
-            </Type>
-          </View>
-        )}
-        {screen === 'library' ? (
-          <CaseLibrary
-            scrollTop={() => scroll.current?.scrollTo({ y: 0, animated: true })}
-            save={save}
-            compact={compact}
-            small={small}
-            openCase={openCase}
-            help={() => setDialog('help')}
-          />
-        ) : (
-          <Investigation
-            puzzle={puzzle}
-            session={session}
-            compact={compact}
-            small={small}
-            selected={selected}
-            mode={mode}
-            tutorialSeen={save.tutorialSeen}
-            showValidation={showValidation}
-            highlight={highlight}
-            feedback={feedback}
-            library={library}
-            help={() => setDialog('help')}
-            briefing={() => setDialog('briefing')}
-            pause={() => setDialog('pause')}
-            hint={() => setDialog('hint')}
-            check={checkScene}
-            undo={() => {
-              updateSession(undoSession);
-              setFeedback(null);
-              setHighlight(undefined);
-              buzz();
-            }}
-            toggleMark={() => {
-              setMode(mode === 'mark' ? 'place' : 'mark');
-              buzz();
-            }}
-            onCell={cellPressed}
-            choosePerson={choosePerson}
-            checkClue={(id) =>
-              updateSession((current) => ({
-                ...current,
-                checkedClues: current.checkedClues.includes(id)
-                  ? current.checkedClues.filter((item) => item !== id)
-                  : [...current.checkedClues, id],
-              }))
-            }
-          />
-        )}
-        <View style={s.footer}>
-          <View style={s.inline}>
-            <Grid2X2 size={12} color={colors.muted} />
-            <Type style={s.footerText}>A little logic. A little mystery.</Type>
-          </View>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => setDialog('notebook')}
-            style={s.inline}
-          >
-            <Type style={s.footerText}>{solvedCount} cases closed</Type>
-            <BookOpen size={12} color={colors.muted} />
-          </Pressable>
-        </View>
-      </ScrollView>
+      </Motion>
       <GameDialogs
         game={game}
         dialog={dialog}
@@ -385,7 +369,6 @@ function Murdoku() {
           setSelected(hint.person);
           setMode('place');
           setHighlight(hint.cell);
-          scroll.current?.scrollTo({ y: 0, animated: true });
         }}
       />
     </SafeAreaView>

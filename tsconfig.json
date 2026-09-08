@@ -1,0 +1,9 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "types": ["react", "node"]
+  },
+  "include": ["App.tsx", "index.ts", "src", "tests", "scripts/**/*.ts", "playwright.config.ts"],
+  "exclude": ["node_modules", "dist", "artifacts", "test-results", "playwright-report"]
+}

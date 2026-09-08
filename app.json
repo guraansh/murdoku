@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "Murdoku",
+    "slug": "murdoku",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.murdoku.game"
+    },
+    "android": {
+      "package": "com.murdoku.game",
+      "adaptiveIcon": {
+        "backgroundColor": "#F5F2E9",
+        "foregroundImage": "./assets/adaptive-icon.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "name": "Murdoku",
+      "description": "A little logic. A little mystery. Reconstruct the scene and find the culprit.",
+      "backgroundColor": "#F5F2E9",
+      "themeColor": "#34563F"
+    },
+    "plugins": [
+      "expo-font"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "89c3ad88-9008-4b39-bcfd-f5a26cb36ab3"
+      }
+    },
+    "owner": "alexb12321"
+  }
+}

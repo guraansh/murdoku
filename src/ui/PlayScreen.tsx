@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import {
   ArrowLeft,
   ArrowRight,
@@ -25,6 +25,8 @@ export function PlayScreen(p: InvestigationProps & { settings: () => void }) {
   const [objects, setObjects] = useState(false);
   const [objectIndex, setObjectIndex] = useState(0);
   const [cluePage, setCluePage] = useState(0);
+  const [largeBoard, setLargeBoard] = useState(false);
+  const { fontScale } = useWindowDimensions();
   const personIndex = Math.max(
     0,
     p.puzzle.people.findIndex((x) => x.id === p.selected),
@@ -34,15 +36,21 @@ export function PlayScreen(p: InvestigationProps & { settings: () => void }) {
   const chunks = clue.text.match(/[^.!?]+[.!?]+|[^.!?]+$/g) ?? [clue.text];
   const pages = chunks.map((text) => text.trim());
   const page = Math.min(cluePage, pages.length - 1);
-  const landscape = bounds.width > bounds.height * 1.2;
-  const boardSize = Math.max(
-    100,
-    Math.min(
-      landscape ? bounds.width * 0.52 - 44 : bounds.width - 42,
-      bounds.height - (landscape ? 136 : bounds.height < 740 ? 422 : 454),
-      600,
-    ),
-  );
+  useEffect(() => {
+    setCluePage(0);
+    setObjects(false);
+  }, [p.selected, p.puzzle.id]);
+  const landscape = !largeBoard && fontScale < 1.3 && bounds.width > bounds.height * 1.2;
+  const boardSize = largeBoard
+    ? p.puzzle.size * 44
+    : Math.max(
+        p.puzzle.size * 30,
+        Math.min(
+          landscape ? bounds.width * 0.52 - 44 : bounds.width - 56,
+          bounds.height - (landscape ? 136 : bounds.height < 740 ? 442 : 466),
+          600,
+        ),
+      );
   const object = p.puzzle.furniture[objectIndex % p.puzzle.furniture.length];
   const choose = (id: string) => {
     setCluePage(0);
@@ -55,6 +63,7 @@ export function PlayScreen(p: InvestigationProps & { settings: () => void }) {
     action: () => void,
     active = false,
     disabled = false,
+    caption = true,
   ) => (
     <Pressable
       accessibilityRole="button"
@@ -81,32 +90,53 @@ export function PlayScreen(p: InvestigationProps & { settings: () => void }) {
       ]}
     >
       {icon}
-      <Type style={a.toolText}>{label}</Type>
+      {caption && <Type style={a.toolText}>{label}</Type>}
     </Pressable>
   );
   return (
-    <View testID="play-screen" style={a.screen} onLayout={(e) => setBounds(e.nativeEvent.layout)}>
+    <ScrollView
+      testID="play-screen"
+      style={{ flex: 1 }}
+      contentContainerStyle={a.screen}
+      onLayout={(e) => setBounds(e.nativeEvent.layout)}
+    >
       <View style={a.top}>
-        {tool('Back to case files', <ArrowLeft size={21} color={colors.ink} />, p.library)}
+        {tool(
+          'Back to case files',
+          <ArrowLeft size={21} color={colors.ink} />,
+          p.library,
+          false,
+          false,
+          false,
+        )}
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Read the case briefing"
           onPress={p.briefing}
           style={{ flex: 1 }}
         >
-          <Eyebrow>
+          <Eyebrow style={{ letterSpacing: 1 }}>
             CASE {p.puzzle.number} · {p.puzzle.difficulty}
           </Eyebrow>
-          <Type accessibilityRole="header" numberOfLines={1} style={a.title}>
+          <Type accessibilityRole="header" style={a.title}>
             {p.puzzle.title}
           </Type>
         </Pressable>
-        {tool('Settings', <Settings2 size={20} color={colors.ink} />, p.settings)}
+        {tool(
+          'Settings',
+          <Settings2 size={20} color={colors.ink} />,
+          p.settings,
+          false,
+          false,
+          false,
+        )}
       </View>
       <View style={[a.body, landscape && { flexDirection: 'row', alignItems: 'center' }]}>
-        <View style={[a.scene, landscape && { flex: 1 }]}>
+        <View style={[a.scene, { maxWidth: boardSize + 24 }, landscape && { flex: 1 }]}>
           <View style={a.meta}>
-            <Type style={a.small}>{p.puzzle.location}</Type>
+            <Type style={[a.small, { flex: 1 }]}>
+              {p.puzzle.location}
+            </Type>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Pause investigation"
@@ -119,6 +149,16 @@ export function PlayScreen(p: InvestigationProps & { settings: () => void }) {
               <Pause size={15} color={colors.ink} />
             </Pressable>
           </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Larger board squares"
+            aria-expanded={largeBoard}
+            accessibilityState={{ expanded: largeBoard }}
+            onPress={() => setLargeBoard(!largeBoard)}
+            style={{ minHeight: 44, paddingVertical: 10, alignSelf: 'flex-start' }}
+          >
+            <Type style={a.small}>{largeBoard ? 'Use compact board' : 'Enlarge board'}</Type>
+          </Pressable>
           <GameBoard
             fitSize={boardSize}
             puzzle={p.puzzle}
@@ -136,7 +176,12 @@ export function PlayScreen(p: InvestigationProps & { settings: () => void }) {
           </View>
         </View>
         <View style={[a.dock, landscape && { flex: 1 }]}>
-          <View style={a.people}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator
+            contentContainerStyle={a.people}
+            style={{ width: '100%' }}
+          >
             {p.puzzle.people.map((x) => (
               <Pressable
                 key={x.id}
@@ -153,26 +198,29 @@ export function PlayScreen(p: InvestigationProps & { settings: () => void }) {
               >
                 <Portrait
                   person={x}
-                  size={Math.min(42, (bounds.width - 42) / p.puzzle.people.length - 5)}
+                  size={Math.min(42, (bounds.width - 56) / p.puzzle.people.length - 5)}
                   faded={x.id === p.puzzle.victim}
                 />
-                <Type numberOfLines={1} adjustsFontSizeToFit style={a.name}>
-                  {x.name}
-                </Type>
+                <Type style={a.name}>{x.name}</Type>
                 {p.session.placements[x.id] !== undefined && <View style={a.dot} />}
               </Pressable>
             ))}
-          </View>
-          <View style={[a.evidence, bounds.height < 740 && { height: 140 }]}>
+          </ScrollView>
+          {p.puzzle.people.length * 64 > bounds.width - 32 && (
+            <Type style={a.small}>Swipe the suspects to see everyone.</Type>
+          )}
+          <View style={[a.evidence, bounds.height < 740 && { minHeight: 154 }]}>
             <View style={a.meta}>
-              <Eyebrow>
+              <Type numberOfLines={1} style={a.evidenceTitle}>
                 {objects
-                  ? 'SCENE OBJECTS'
-                  : `${person.name} · ${p.showValidation && clue.rules.some((rule) => ruleStatus(p.puzzle, person.id, rule, p.session.placements) === 'broken') ? 'REVISIT CLUE' : 'TESTIMONY'}`}
-              </Eyebrow>
+                  ? 'Scene objects'
+                  : `${person.name} · ${p.showValidation && clue.rules.some((rule) => ruleStatus(p.puzzle, person.id, rule, p.session.placements) === 'broken') ? 'Revisit clue' : 'Testimony'}`}
+              </Type>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Furniture key"
+                aria-expanded={objects}
+                accessibilityState={{ expanded: objects }}
                 onPress={() => setObjects(!objects)}
                 style={a.tab}
               >
@@ -182,7 +230,7 @@ export function PlayScreen(p: InvestigationProps & { settings: () => void }) {
             </View>
             <Motion
               identity={`${person.id}-${page}-${objects}-${objectIndex}`}
-              style={{ flex: 1, justifyContent: 'center' }}
+              style={{ flexGrow: 1, justifyContent: 'center', paddingVertical: 10 }}
             >
               {objects ? (
                 <View style={a.object}>
@@ -198,58 +246,8 @@ export function PlayScreen(p: InvestigationProps & { settings: () => void }) {
                 </Type>
               )}
             </Motion>
-            <View style={a.meta}>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={objects ? 'Previous object' : 'Previous witness'}
-                onPress={() =>
-                  objects
-                    ? setObjectIndex(
-                        (objectIndex + p.puzzle.furniture.length - 1) % p.puzzle.furniture.length,
-                      )
-                    : choose(
-                        p.puzzle.people[
-                          (personIndex + p.puzzle.people.length - 1) % p.puzzle.people.length
-                        ].id,
-                      )
-                }
-                style={a.arrow}
-              >
-                <ArrowLeft size={18} color={colors.green} />
-              </Pressable>
-              {objects ? (
-                <Type style={a.small}>
-                  {(objectIndex % p.puzzle.furniture.length) + 1} / {p.puzzle.furniture.length}
-                </Type>
-              ) : pages.length > 1 ? (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="Next clue page"
-                    onPress={() => setCluePage((page + 1) % pages.length)}
-                    style={a.tab}
-                  >
-                    <Type style={a.small}>
-                      Clue {page + 1}/{pages.length} · Next
-                    </Type>
-                  </Pressable>
-                  <Pressable
-                    accessibilityRole="checkbox"
-                    aria-checked={p.session.checkedClues.includes(person.id)}
-                    accessibilityLabel={`Mark ${person.name}'s clue as reviewed`}
-                    accessibilityState={{ checked: p.session.checkedClues.includes(person.id) }}
-                    onPress={() => p.checkClue(person.id)}
-                    style={a.arrow}
-                  >
-                    <Check
-                      size={18}
-                      color={
-                        p.session.checkedClues.includes(person.id) ? colors.green : colors.muted
-                      }
-                    />
-                  </Pressable>
-                </View>
-              ) : (
+            <View style={a.evidenceFooter}>
+              {!objects && (
                 <Pressable
                   accessibilityRole="checkbox"
                   aria-checked={p.session.checkedClues.includes(person.id)}
@@ -258,24 +256,57 @@ export function PlayScreen(p: InvestigationProps & { settings: () => void }) {
                   onPress={() => p.checkClue(person.id)}
                   style={a.tab}
                 >
-                  <Check size={15} color={colors.green} />
+                  <Check
+                    size={16}
+                    color={
+                      p.session.checkedClues.includes(person.id) ? colors.green : colors.secondary
+                    }
+                  />
                   <Type style={a.small}>
                     {p.session.checkedClues.includes(person.id) ? 'Reviewed' : 'Mark reviewed'}
                   </Type>
                 </Pressable>
               )}
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={objects ? 'Next object' : 'Next witness'}
-                onPress={() =>
-                  objects
-                    ? setObjectIndex((objectIndex + 1) % p.puzzle.furniture.length)
-                    : choose(p.puzzle.people[(personIndex + 1) % p.puzzle.people.length].id)
-                }
-                style={a.arrow}
-              >
-                <ArrowRight size={18} color={colors.green} />
-              </Pressable>
+              {(objects || pages.length > 1) && (
+                <View style={a.pagination}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={objects ? 'Previous object' : 'Previous clue page'}
+                    disabled={!objects && page === 0}
+                    accessibilityState={{ disabled: !objects && page === 0 }}
+                    onPress={() =>
+                      objects
+                        ? setObjectIndex(
+                            (objectIndex + p.puzzle.furniture.length - 1) %
+                              p.puzzle.furniture.length,
+                          )
+                        : setCluePage(page - 1)
+                    }
+                    style={[a.arrow, !objects && page === 0 && { opacity: 0.3 }]}
+                  >
+                    <ArrowLeft size={17} color={colors.green} />
+                  </Pressable>
+                  <Type style={a.small}>
+                    {objects
+                      ? `${(objectIndex % p.puzzle.furniture.length) + 1} / ${p.puzzle.furniture.length}`
+                      : `${page + 1} / ${pages.length}`}
+                  </Type>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={objects ? 'Next object' : 'Next clue page'}
+                    disabled={!objects && page === pages.length - 1}
+                    accessibilityState={{ disabled: !objects && page === pages.length - 1 }}
+                    onPress={() =>
+                      objects
+                        ? setObjectIndex((objectIndex + 1) % p.puzzle.furniture.length)
+                        : setCluePage(page + 1)
+                    }
+                    style={[a.arrow, !objects && page === pages.length - 1 && { opacity: 0.3 }]}
+                  >
+                    <ArrowRight size={17} color={colors.green} />
+                  </Pressable>
+                </View>
+              )}
             </View>
           </View>
           <View style={a.controls}>
@@ -320,41 +351,52 @@ export function PlayScreen(p: InvestigationProps & { settings: () => void }) {
           <Type style={{ color: colors.paper, fontSize: 12 }}>{p.feedback.text}</Type>
         </View>
       )}
-    </View>
+    </ScrollView>
   );
 }
 const a = StyleSheet.create({
-  screen: { flex: 1, paddingHorizontal: 12, paddingBottom: 8, overflow: 'hidden' },
-  top: { height: 60, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  screen: { flexGrow: 1, paddingHorizontal: 16, paddingBottom: 12 },
+  top: {
+    minHeight: 64,
+    width: '100%',
+    maxWidth: 960,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
   title: { fontFamily: fonts.title, fontSize: 19, lineHeight: 24 },
-  body: { flex: 1, justifyContent: 'space-evenly', gap: 6 },
-  scene: { alignItems: 'center' },
+  body: { flexGrow: 1, justifyContent: 'center', gap: 12 },
+  scene: { alignItems: 'center', width: '100%', alignSelf: 'center' },
   meta: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
     width: '100%',
     gap: 6,
   },
-  small: { fontSize: 10, lineHeight: 15, color: colors.secondary },
+  small: { fontSize: 11, lineHeight: 17, color: colors.secondary },
   pause: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 7,
-    minHeight: 32,
+    minHeight: 44,
     paddingHorizontal: 8,
   },
   dock: { gap: 8, width: '100%', maxWidth: 620, alignSelf: 'center' },
-  people: { flexDirection: 'row', gap: 2 },
+  people: { flexDirection: 'row', gap: 4, flexGrow: 1 },
   person: {
     flex: 1,
+    minWidth: 60,
+    maxWidth: 110,
     alignItems: 'center',
     paddingVertical: 4,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: 'transparent',
   },
-  name: { fontSize: 9, lineHeight: 14 },
+  name: { fontSize: 11, lineHeight: 16, textAlign: 'center', flexShrink: 1 },
   dot: {
     position: 'absolute',
     top: 2,
@@ -366,18 +408,21 @@ const a = StyleSheet.create({
   },
   active: { backgroundColor: colors.greenLight, borderColor: colors.green },
   evidence: {
-    height: 172,
-    borderRadius: 18,
+    minHeight: 178,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.line,
     backgroundColor: colors.paper,
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingVertical: 6,
   },
-  clue: { fontSize: 13, lineHeight: 19 },
+  evidenceTitle: { flex: 1, fontSize: 12, fontFamily: fonts.medium, color: colors.secondary },
+  evidenceFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  pagination: { flexDirection: 'row', alignItems: 'center', marginLeft: 'auto' },
+  clue: { fontSize: 15, lineHeight: 22 },
   object: { flexDirection: 'row', alignItems: 'center', gap: 16, justifyContent: 'center' },
-  tab: { flexDirection: 'row', alignItems: 'center', gap: 5, minHeight: 32 },
-  arrow: { width: 44, height: 32, alignItems: 'center', justifyContent: 'center' },
+  tab: { flexDirection: 'row', alignItems: 'center', gap: 5, minHeight: 44 },
+  arrow: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   controls: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingTop: 4 },
   tool: {
     minWidth: 44,
@@ -389,7 +434,7 @@ const a = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'transparent',
   },
-  toolText: { fontSize: 8, lineHeight: 12, maxWidth: 44, textAlign: 'center' },
+  toolText: { fontSize: 10, lineHeight: 14, maxWidth: 44, textAlign: 'center' },
   toast: {
     position: 'absolute',
     left: 18,

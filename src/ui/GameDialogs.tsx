@@ -19,15 +19,26 @@ import { timeLabel } from './Investigation';
 import { Button, Eyebrow, Sheet, Type } from './primitives';
 import { s } from './styles';
 import { colors, fonts } from './theme';
+import { AboutContent, PrivacyContent } from './AboutContent';
+import { RELEASE } from '../release';
+import { PracticeContent } from './PracticeContent';
+import { progressiveHint } from '../game/hints';
+import { ResultShare } from './ResultShare';
+import { Motion } from './Motion';
+import { CHAPTERS, chapterOf } from '../game/campaign';
 
 export type Dialog =
   | 'help'
+  | 'practice'
   | 'briefing'
   | 'settings'
+  | 'about'
+  | 'privacy'
   | 'hint'
   | 'reset'
   | 'accuse'
   | 'solved'
+  | 'share'
   | 'notebook'
   | 'pause'
   | null;
@@ -53,13 +64,19 @@ export function GameDialogs({
   showHint,
 }: Props) {
   const { puzzle, session, save, setSave, updateSession } = game;
-  const [hint, setHint] = useState<ReturnType<typeof getHint>>(null);
+  const [lead, setLead] = useState<ReturnType<typeof progressiveHint>>(null);
+  const [hintStage, setHintStage] = useState(0);
+  const hint = lead?.reveal;
   const [accused, setAccused] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [lastDialog, setLastDialog] = useState<Exclude<Dialog, null>>('help');
   const displayedDialog = dialog ?? lastDialog;
   const solvedCount = CASES.filter((item) => save.sessions[item.id]?.solved).length;
   const nextCase = CASES[CASES.indexOf(puzzle) + 1];
+  const chapter = CHAPTERS[chapterOf(puzzle) - 1];
+  const chapterComplete = CASES.filter((item) => chapterOf(item) === chapter.number).every(
+    (item) => save.sessions[item.id]?.solved,
+  );
   const openInvestigations = CASES.filter(
     (item) => save.sessions[item.id] && !save.sessions[item.id].solved,
   ).sort((a, b) =>
@@ -67,7 +84,10 @@ export function GameDialogs({
   );
   useEffect(() => {
     if (dialog) setLastDialog(dialog);
-    if (dialog === 'hint') setHint(null);
+    if (dialog === 'hint') {
+      setLead(null);
+      setHintStage(0);
+    }
     if (dialog === 'accuse') {
       setAccused(null);
       setError('');
@@ -79,12 +99,13 @@ export function GameDialogs({
     close();
   };
   function revealHint() {
-    const next = getHint(puzzle, session.placements);
+    const next = progressiveHint(puzzle, session.placements);
     if (!next) {
       setDialog('accuse');
       return;
     }
-    setHint(next);
+    setLead(next);
+    setHintStage(1);
     updateSession((current) => ({ ...current, hints: current.hints + 1 }));
   }
   function accuse() {
@@ -100,6 +121,23 @@ export function GameDialogs({
   const sheetOptions = (
     <>
       <Sheet
+        visible={displayedDialog === 'share'}
+        opaque
+        onClose={close}
+        eyebrow="NO SPOILERS"
+        title="A case worth sharing."
+      >
+        <ResultShare number={puzzle.number} elapsed={session.elapsed} hints={session.hints} />
+      </Sheet>
+      <Sheet
+        visible={displayedDialog === 'practice'}
+        onClose={close}
+        eyebrow="A GUIDED FIRST CASE"
+        title="The study mystery"
+      >
+        <PracticeContent finish={closeHelp} />
+      </Sheet>
+      <Sheet
         visible={displayedDialog === 'help'}
         onClose={closeHelp}
         eyebrow="A FIELD GUIDE FOR NEW DETECTIVES"
@@ -108,6 +146,9 @@ export function GameDialogs({
         <View style={{ alignItems: 'center', marginTop: -8, marginBottom: 16 }}>
           <ManorArt width={260} />
         </View>
+        <Button secondary style={{ marginBottom: 20 }} onPress={() => setDialog('practice')}>
+          Try a practice scene
+        </Button>
         {[
           [
             '01',
@@ -193,27 +234,56 @@ export function GameDialogs({
           <Lightbulb size={35} color={colors.rust} strokeWidth={1.4} />
         </View>
         <Type style={s.modalText}>
-          {hint?.text ??
-            'Reveal the location of one person, or find a placement to revisit. You will still place the token yourself. Each revealed hint is recorded in your notebook.'}
+          {hintStage === 0
+            ? 'Start with relevant evidence, then ask for an explanation or a position. One lead counts as one hint, even if you read all three stages. You place the token yourself.'
+            : hintStage === 1
+              ? 'Focus on this evidence. Compare it with occupied rows and columns.'
+              : hintStage === 2
+                ? lead?.deduction
+                : hint?.text}
         </Type>
+        {hintStage > 0 &&
+          hintStage < 3 &&
+          lead?.evidence.map((clue) => (
+            <View
+              key={clue.person}
+              style={{
+                borderLeftWidth: 3,
+                borderColor: colors.green,
+                paddingLeft: 12,
+                marginBottom: 14,
+              }}
+            >
+              <Type style={s.helpTitle}>
+                {puzzle.people.find((person) => person.id === clue.person)!.name}
+              </Type>
+              <Type>{clue.text}</Type>
+            </View>
+          ))}
         <Type style={s.hintCount}>
           {session.hints} hint{session.hints === 1 ? '' : 's'} used in this case
         </Type>
         <Button
           onPress={
-            hint
+            hint && hintStage === 3
               ? () => {
                   showHint(hint);
                   close();
                 }
-              : revealHint
+              : hintStage === 0
+                ? revealHint
+                : () => setHintStage(hintStage + 1)
           }
         >
-          {hint
+          {hint && hintStage === 3
             ? hint.cell === undefined
               ? 'Revisit this person'
               : `Show ${coordinate(hint.cell, puzzle.size)} on the board`
-            : 'Reveal a hint'}
+            : hintStage === 0
+              ? 'Reveal a hint'
+              : hintStage === 1
+                ? 'Explain the deduction'
+                : 'Reveal the position'}
         </Button>
       </Sheet>
       <Sheet
@@ -260,9 +330,28 @@ export function GameDialogs({
           </Button>
         </View>
         <Type style={[s.helpText, { marginTop: 20 }]}>
-          Murdoku · The Complete Casebook{'\n'}100 cases. Ten chapters. Five difficulty levels.
-          Progress is stored on this device.
+          {RELEASE.name} · The Complete Casebook{'\n'}100 cases. Ten chapters. Five difficulty
+          levels. Progress is stored on this device.
         </Type>
+        <Button secondary style={{ marginTop: 16 }} onPress={() => setDialog('about')}>
+          About & support
+        </Button>
+      </Sheet>
+      <Sheet
+        visible={displayedDialog === 'about'}
+        onClose={close}
+        eyebrow="HERE TO HELP"
+        title="About & support"
+      >
+        <AboutContent puzzle={puzzle} privacy={() => setDialog('privacy')} />
+      </Sheet>
+      <Sheet
+        visible={displayedDialog === 'privacy'}
+        onClose={close}
+        eyebrow="YOUR PRIVACY"
+        title="Privacy policy"
+      >
+        <PrivacyContent />
       </Sheet>
       <Sheet
         visible={displayedDialog === 'reset'}
@@ -346,6 +435,28 @@ export function GameDialogs({
             </Type>
           </View>
         </View>
+        {chapterComplete && (
+          <Motion identity={`chapter-${chapter.number}`}>
+            <View
+              testID="chapter-celebration"
+              accessibilityLiveRegion="polite"
+              style={{
+                padding: 18,
+                borderRadius: 14,
+                backgroundColor: '#E7EDDF',
+                marginBottom: 16,
+                gap: 8,
+                alignItems: 'center',
+              }}
+            >
+              <Trophy size={36} color={colors.gold} />
+              <Type accessibilityRole="header" style={s.helpTitle}>
+                Chapter {chapter.number} complete!
+              </Type>
+              <Type>{chapter.name} · All ten mysteries solved.</Type>
+            </View>
+          </Motion>
+        )}
         <Type style={s.modalText}>{puzzle.conclusion}</Type>
         <View style={s.results}>
           <View>
@@ -363,6 +474,9 @@ export function GameDialogs({
             </Type>
           </View>
         </View>
+        <Button secondary style={{ marginBottom: 12 }} onPress={() => setDialog('share')}>
+          Share spoiler-free result
+        </Button>
         {nextCase ? (
           <Button
             testID="next-case"

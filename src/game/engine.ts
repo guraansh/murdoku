@@ -297,7 +297,7 @@ export function getHint(
   return {
     person: person.id,
     cell,
-    text: `${person.name} belongs at ${coordinate(cell, puzzle.size)}. ${person.id === puzzle.victim ? 'After placing the suspects, this is the remaining row and column. The victim shares this room with just one suspect.' : `${clue.text} Combine this with the occupied rows and columns.`}`,
+    text: `${person.name} belongs at ${coordinate(cell, puzzle.size)}. ${person.id === puzzle.victim ? 'In the completed scene, the victim shares this room with just one suspect.' : `${clue.text} This position is part of the complete solution to all the evidence.`}`,
   };
 }
 

@@ -44,7 +44,7 @@ export function CaseLibrary({
   return (
     <>
       <View style={s.libraryHero}>
-        <Eyebrow>THE MURDOKU CASEBOOK · 100 CASE FILES</Eyebrow>
+        <Eyebrow>THE CLUEWOVEN CASEBOOK · 100 CASE FILES</Eyebrow>
         <Type
           accessibilityRole="header"
           style={[s.largeTitle, small && { fontSize: 37, lineHeight: 45 }]}

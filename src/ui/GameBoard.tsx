@@ -97,6 +97,7 @@ export function GameBoard({
         s.card,
         small && { padding: 14 },
         fitSize !== undefined && {
+          width: '100%',
           padding: 0,
           borderWidth: 0,
           backgroundColor: 'transparent',
@@ -166,6 +167,12 @@ export function GameBoard({
                           key={c}
                           accessibilityRole="button"
                           accessibilityLabel={`${coordinate(cell, puzzle.size)}, ${room.name}${object ? `, ${object.name}` : occupant ? `, ${occupant.name}` : marked ? ', marked empty' : ', empty'}`}
+                          accessibilityHint={
+                            rowTaken && !occupant && !object
+                              ? 'Another person occupies this row or column.'
+                              : undefined
+                          }
+                          accessibilityState={{ selected: !!selectedHere }}
                           testID={`cell-${cell}`}
                           onPress={() => onCell(cell)}
                           style={({ pressed }) => [
@@ -174,10 +181,10 @@ export function GameBoard({
                               width: tileSize,
                               height: tileSize,
                               backgroundColor: room.color,
-                              borderRightWidth: rightWall ? 3 : c === puzzle.size - 1 ? 0 : 1.25,
-                              borderBottomWidth: bottomWall ? 3 : r === puzzle.size - 1 ? 0 : 1.25,
-                              borderRightColor: rightWall ? '#59634F' : '#A49D7E',
-                              borderBottomColor: bottomWall ? '#59634F' : '#A49D7E',
+                              borderRightWidth: rightWall ? 2 : c === puzzle.size - 1 ? 0 : 0.75,
+                              borderBottomWidth: bottomWall ? 2 : r === puzzle.size - 1 ? 0 : 0.75,
+                              borderRightColor: rightWall ? '#59634F' : '#A49D7E99',
+                              borderBottomColor: bottomWall ? '#59634F' : '#A49D7E99',
                               opacity: pressed ? 0.65 : 1,
                             },
                           ]}
@@ -253,7 +260,7 @@ export function GameBoard({
                         {
                           left: label.left,
                           top: label.top,
-                          width: label.width,
+                          maxWidth: label.width,
                           borderColor: `${label.ink}55`,
                         },
                       ]}
@@ -274,7 +281,7 @@ export function GameBoard({
           </View>
         </ScrollView>
       </View>
-      {fitSize === undefined && boardSize + 24 > available + 1 && (
+      {boardSize + 24 > available + 1 && (
         <Type style={{ fontSize: 10, color: colors.muted, textAlign: 'center', marginTop: 5 }}>
           Slide the floor plan to see every column.
         </Type>

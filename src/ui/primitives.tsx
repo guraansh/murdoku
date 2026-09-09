@@ -101,6 +101,7 @@ export function Sheet({
   children,
   onClose,
   wide = false,
+  opaque = false,
 }: {
   visible: boolean;
   title: string;
@@ -108,6 +109,7 @@ export function Sheet({
   children: React.ReactNode;
   onClose: () => void;
   wide?: boolean;
+  opaque?: boolean;
 }) {
   return (
     <Modal
@@ -117,7 +119,7 @@ export function Sheet({
       onRequestClose={onClose}
       statusBarTranslucent
     >
-      <View style={styles.backdrop}>
+      <View style={[styles.backdrop, opaque && { backgroundColor: colors.paper }]}>
         <Pressable
           style={StyleSheet.absoluteFill}
           onPress={onClose}

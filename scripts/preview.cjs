@@ -58,4 +58,4 @@ http
       response.end('Not found');
     }
   })
-  .listen(port, '127.0.0.1', () => console.log(`Murdoku preview: http://localhost:${port}`));
+  .listen(port, '127.0.0.1', () => console.log(`Cluewoven preview: http://localhost:${port}`));

@@ -30,9 +30,10 @@ import { Dialog, GameDialogs } from './src/ui/GameDialogs';
 import { PlayScreen } from './src/ui/PlayScreen';
 import { Motion } from './src/ui/Motion';
 import { useSound } from './src/ui/useSound';
-import { Type } from './src/ui/primitives';
+import { Button, Type } from './src/ui/primitives';
 import { s } from './src/ui/styles';
 import { colors } from './src/ui/theme';
+import { RELEASE } from './src/release';
 
 export default function App() {
   const [loaded, error] = useFonts({
@@ -44,7 +45,7 @@ export default function App() {
   if (!loaded && !error)
     return (
       <View style={s.loading}>
-        <Type style={{ fontFamily: undefined, fontSize: 30 }}>murdoku</Type>
+        <Type style={{ fontFamily: undefined, fontSize: 30 }}>{RELEASE.name}</Type>
         <Type style={{ fontFamily: undefined, color: colors.muted }}>Opening your case file…</Type>
       </View>
     );
@@ -229,7 +230,17 @@ function Murdoku() {
     return (
       <View style={s.loading}>
         <Search size={30} color={colors.green} />
-        <Type>Opening your notebook…</Type>
+        {game.loadError ? (
+          <View style={{ maxWidth: 420, padding: 24, gap: 16 }}>
+            <Type accessibilityRole="header">Your notebook could not be opened.</Type>
+            <Type>
+              We haven’t changed your saved progress. Retry to continue your investigation.
+            </Type>
+            <Button onPress={game.retryLoad}>Retry opening notebook</Button>
+          </View>
+        ) : (
+          <Type>Opening your notebook…</Type>
+        )}
       </View>
     );
 
@@ -241,7 +252,7 @@ function Murdoku() {
           <View style={[s.header, small && { paddingHorizontal: 18, height: 74, gap: 10 }]}>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Murdoku case files"
+              accessibilityLabel={`${RELEASE.name} case files`}
               onPress={library}
               style={s.brand}
             >
@@ -250,7 +261,7 @@ function Murdoku() {
                 <View style={s.brandDot} />
               </View>
               <Type style={s.logo}>
-                murdoku<Type style={{ color: colors.rust, fontSize: 32 }}>.</Type>
+                cluewoven<Type style={{ color: colors.rust, fontSize: 32 }}>.</Type>
               </Type>
             </Pressable>
             {width >= 700 && (
@@ -300,6 +311,9 @@ function Murdoku() {
               <Type>
                 Progress could not be saved on this device. Keep this game open while you play.
               </Type>
+              <Button secondary onPress={game.retrySave}>
+                Retry saving
+              </Button>
             </View>
           )}
           {screen === 'library' ? (

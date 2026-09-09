@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { CASES } from '../src/game/cases';
 import { CHAPTERS, DIFFICULTY_BANDS, chapterOf } from '../src/game/campaign';
 import { LEGACY_CASES } from '../src/game/legacyCases';
+import { progressiveHint } from '../src/game/hints';
 import { initialDomains, rateCase } from '../scripts/authoring/solve';
 import { minimumPossibilities } from '../scripts/authoring/enrich';
 import {
@@ -18,6 +19,40 @@ import {
   undoSession,
   violations,
 } from '../src/game/engine';
+
+test('progressive hint eliminations preserve the solution throughout every case', () => {
+  for (const puzzle of CASES) {
+    const placements: Record<string, number> = {};
+    for (let count = 0; count < puzzle.people.length; count++) {
+      const lead = progressiveHint(puzzle, placements)!;
+      assert.ok(lead);
+      const answer = puzzle.solution[lead.reveal.person];
+      assert.equal(lead.reveal.cell, answer);
+      assert.ok(
+        lead.candidates.includes(answer),
+        `${puzzle.id}: explanation eliminated the answer`,
+      );
+      for (const cell of lead.candidates)
+        assert.deepEqual(violations(puzzle, { ...placements, [lead.reveal.person]: cell }), []);
+      assert.ok(lead.evidence.length);
+      placements[lead.reveal.person] = answer;
+    }
+    assert.equal(progressiveHint(puzzle, placements), null);
+  }
+});
+
+test('a mistaken placement produces a recovery lead instead of a fabricated position deduction', () => {
+  const puzzle = CASES[0];
+  const person = puzzle.people[0].id;
+  const cell = Array.from({ length: puzzle.size ** 2 }, (_, index) => index).find(
+    (cell) => cell !== puzzle.solution[person] && !placementProblem(puzzle, {}, person, cell),
+  )!;
+  const lead = progressiveHint(puzzle, { [person]: cell })!;
+  assert.equal(lead.reveal.person, person);
+  assert.equal(lead.reveal.cell, undefined);
+  assert.deepEqual(lead.candidates, []);
+  assert.ok(lead.deduction.includes('Revisit') || lead.deduction.includes('cannot extend'));
+});
 
 test('100 distinct case files retain their order across ten chapters and increasing difficulty bands', () => {
   assert.equal(CASES.length, 100);

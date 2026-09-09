@@ -1,6 +1,8 @@
-# Murdoku
+# Cluewoven
 
 A React Native + Expo detective puzzle game for Android and iOS, with a browser preview. Warm paper, illustrated suspects, colored floor plans, and 100 playable mysteries.
+
+Release preparation and external dependencies are tracked in [RELEASE.md](RELEASE.md). The display name is Cluewoven; legacy development identifiers and local save keys are retained until release account configuration is settled. Help includes a guided practice scene, hints progress from testimony to explanation to reveal, and solved cases offer spoiler-free result sharing. On small screens, use Enlarge board for 44px squares and swipe the suspect dock for larger portrait controls.
 
 ## Play locally
 

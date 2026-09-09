@@ -117,6 +117,11 @@ test('placements, reviewed clues, marks, hints and undo history survive a reload
   const square = coordinate(hint.cell!, CASES[0].size);
   await page.getByRole('button', { name: 'Get a hint' }).click();
   await page.getByRole('button', { name: 'Reveal a hint' }).click();
+  await expect(page.getByText(new RegExp(`${hintPerson.name} belongs at ${square}`))).toHaveCount(
+    0,
+  );
+  await page.getByRole('button', { name: 'Explain the deduction' }).click();
+  await page.getByRole('button', { name: 'Reveal the position' }).click();
   await expect(page.getByText(new RegExp(`${hintPerson.name} belongs at ${square}`))).toBeVisible();
   await page.getByRole('button', { name: `Show ${square} on the board` }).click();
   await page.getByTestId(`cell-${hint.cell}`).click();
@@ -271,7 +276,7 @@ test('sound and haptic preferences survive reload', async ({ page }) => {
   await expect(page.getByRole('switch', { name: 'Haptic feedback' })).not.toBeChecked();
 });
 
-test('small phones and tablets keep master board and controls on screen', async ({ page }) => {
+test('small phones and tablets keep master board and controls reachable', async ({ page }) => {
   for (const viewport of [
     { width: 360, height: 640 },
     { width: 768, height: 1024 },
@@ -282,6 +287,7 @@ test('small phones and tablets keep master board and controls on screen', async 
     await page.getByTestId('chapter-10').click();
     await page.getByTestId('preview-case-case-100').click();
     await page.getByTestId('open-case-case-100').click();
+    await page.getByRole('button', { name: 'Check scene', exact: true }).scrollIntoViewIfNeeded();
     await expect
       .poll(async () => {
         const box = await page
@@ -290,6 +296,7 @@ test('small phones and tablets keep master board and controls on screen', async 
         return box ? box.y + box.height : Infinity;
       })
       .toBeLessThanOrEqual(viewport.height);
+    await page.getByTestId('cell-80').scrollIntoViewIfNeeded();
     const last = await page.getByTestId('cell-80').boundingBox();
     expect(last!.x + last!.width).toBeLessThanOrEqual(viewport.width);
     expect(last!.y + last!.height).toBeLessThan(viewport.height);

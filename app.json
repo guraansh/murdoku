@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Murdoku",
+    "name": "Cluewoven",
     "slug": "murdoku",
     "version": "0.1.0",
     "orientation": "default",
@@ -20,7 +20,7 @@
     },
     "web": {
       "favicon": "./assets/favicon.png",
-      "name": "Murdoku",
+      "name": "Cluewoven",
       "description": "A little logic. A little mystery. Reconstruct the scene and find the culprit.",
       "backgroundColor": "#F5F2E9",
       "themeColor": "#34563F"
